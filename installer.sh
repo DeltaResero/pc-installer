@@ -159,7 +159,7 @@ validate_part_selection() {
 			case $yesno in
 				y|Y|yes|YES)
 					if [ "$1" = "root" ]; then
-						mkfs.ext4 -O '^verity' -O '^metadata_csum_seed' -L 'arch' "/dev/$selection"
+						mkfs.ext4 -O '^encrypt' -O '^verity' -O '^metadata_csum_seed' -L 'arch' "/dev/$selection"
 					elif [ "$1" = "boot" ]; then
 						mkfs.vfat -F 32 "/dev/$selection"
 					fi
