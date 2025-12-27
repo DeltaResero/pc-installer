@@ -426,14 +426,15 @@ get_file_size() {
 
 spinner() {
 	pid=$!
+	msg="$1"
 	spin='|/-\'
 	i=0
 	while kill -0 "$pid" 2>/dev/null; do
 		i=$(( (i+1) %4 ))
-		printf "\r[%c] Extracting..." "${spin:$i:1}"
+		printf "\r[%c] %s..." "${spin:$i:1}" "$msg"
 		sleep .1
 	done
-	printf "\r[✓] Extraction Complete!   \n"
+	printf "\r[✓] %s complete!       \n" "$msg"
 }
 
 download_or_use_local() {
@@ -482,7 +483,7 @@ install_boot() {
 		pv -p -t -e -r -b -s "$file_size" "$tarball_name" | tar xz -C "$boot_mnt/"
 	else
 		(tar xzf "$tarball_name" -C "$boot_mnt/") &
-		spinner
+		spinner "Extracting"
 	fi
 
 	printf "\033[32mBoot files installed!\033[0m\n"
@@ -504,11 +505,12 @@ install_root() {
 	else
 		echo "Extracting... (this might take a while)"
 		(tar -xzP --acls --xattrs --same-owner --same-permissions --numeric-owner --sparse -f "$tarball_name" -C "$rootfs_mnt/") &
-		spinner
+		spinner "Extracting"
 	fi
 
-	echo "Syncing to disk..."
-	sync "$rootfs_mnt"
+	echo "Syncing to disk (this WILL take a while)..."
+	sync "$rootfs_mnt" &
+	spinner "Syncing"
 	printf "\033[32mRootfs installed!\033[0m\n"
 }
 
@@ -559,7 +561,8 @@ do_configure() {
 
 unmount_and_cleanup() {
 	printf "\033[32mSuccess!  Now syncing to disk and cleaning up, please wait...\n"
-	sync
+	sync &
+	spinner "Final sync"
 
 	umount "$boot_mnt" || {
 		printf "\033[1;31mFATAL ERROR: Failed to unmount boot partition.\033[0m\n"
