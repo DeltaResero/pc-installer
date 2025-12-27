@@ -45,7 +45,9 @@ cleanup() {
 		losetup -d "$loopdev" 2>/dev/null || true
 	fi
 }
-trap cleanup EXIT INT TERM
+# Trap INT/TERM separately to ensure exit is called, preventing loop traps
+trap cleanup EXIT
+trap "exit 1" INT TERM
 
 check_dependencies() {
 	missing_deps=""
@@ -132,8 +134,13 @@ select_disk() {
 	i=1
 
 	echo
-	printf "Select a disk: "
+	printf "Select a disk (or 'q' to quit): "
 	read -r devnum
+
+	if [ "$devnum" = "q" ] || [ "$devnum" = "Q" ]; then
+		printf "\033[33mInstallation cancelled by user.\033[0m\n"
+		exit 0
+	fi
 
 	for dev in $all_bdevs; do
 		if [ "$i" = "$devnum" ]; then
@@ -166,8 +173,13 @@ select_part() {
 	i=1
 
 	echo
-	printf "Select a partition: "
+	printf "Select a partition (or 'q' to quit): "
 	read -r partnum
+
+	if [ "$partnum" = "q" ] || [ "$partnum" = "Q" ]; then
+		printf "\033[33mInstallation cancelled by user.\033[0m\n"
+		exit 0
+	fi
 
 	for part in $all_parts; do
 		if [ "$i" = "$partnum" ]; then
@@ -340,11 +352,12 @@ select_root_disk() {
 	while true; do
 		printf "\033[33mYou can store \033[32mthe rootfs\033[33m (the actual system files and user data) on a different device.\n"
 		printf "This, however, is highly experimental, and will disable the auto-partitioning feature of this script.\n"
-		printf "Would you like to store the boot files and rootfs on seperate devices?\033[0m [y/N] "
+		printf "Would you like to store the boot files and rootfs on seperate devices?\033[0m [y/N/q] "
 		read -r yesno
 		case "$yesno" in
 			y|Y|yes|YES) seperate_sd_and_rootfs=true; break ;;
 			n|N|no|NO|"") seperate_sd_and_rootfs=false; break ;;
+			q|Q|quit|QUIT) printf "\033[33mInstallation cancelled by user.\033[0m\n"; exit 0 ;;
 			*) printf "\033[1;31mInvalid option, please try again\033[0m\n" ;;
 		esac
 	done
@@ -630,9 +643,10 @@ automatic_install() {
 
 	fatSize=""
 	while true; do
-		printf "\033[33mHow many MB of space would you like to reserve for the \033[32mFAT32 Boot files / Homebrew partiton\033[33m?\033[0m [default:256] "
+		printf "\033[33mHow many MB of space would you like to reserve for the \033[32mFAT32 Boot files / Homebrew partiton\033[33m?\033[0m [default:256, q to quit] "
 		read -r fatSz
 		case "$fatSz" in
+			q|Q|quit|Quit) printf "\033[33mInstallation cancelled by user.\033[0m\n"; exit 0 ;;
 			*[!0-9]*) printf "\033[1;31mInvalid input!  Please type a number.\033[0m\n"; continue ;;
 			'') fatSize="+256M" ;;
 			*)
@@ -762,6 +776,7 @@ if [ "$seperate_sd_and_rootfs" = "false" ]; then
 		case "$doauto" in
 			a|A|auto|Auto|AUTO|automatic|Automatic|AUTOMATIC) automatic_install ;;
 			m|M|man|Man|MAN|manual|Manual|MANUAL) manual_install ;;
+			q|Q|quit|Quit|QUIT) printf "\033[33mInstallation cancelled by user.\033[0m\n"; exit 0 ;;
 			*) printf "\033[1;31mInvalid option, please try again\033[0m\n"; continue ;;
 		esac
 		break
