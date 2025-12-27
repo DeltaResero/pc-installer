@@ -496,7 +496,7 @@ install_root() {
 	download_or_use_local "$base_url/$tarball_name" "$tarball_name"
 
 	rootfs_mnt="$(mount_in_tmpdir_or_die "$rootfs_blkdev")"
-	echo "Now installing the rootfs... (this will take a VERY long time on most storage media)"
+	echo "Now installing the rootfs... (this may take a while depending on storage speed)"
 
 	if has_pv; then
 		file_size=$(get_file_size "$tarball_name")
@@ -727,7 +727,7 @@ EOF
 	boot_blkdev="${loopdev}p1"
 	rootfs_blkdev="${loopdev}p2"
 
-	echo "Fomatting..."
+	echo "Formatting..."
 	mkfs.vfat -F 32 "$boot_blkdev" && mkfs.ext4 -O '^verity' -O '^metadata_csum_seed' -L 'arch' "$rootfs_blkdev" || {
 		ret="$?"
 		printf "\033[1;31mFailed to format loopdev!\033[0m\n"
