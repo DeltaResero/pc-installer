@@ -4,11 +4,6 @@ product="\033[33mWii Linux \033[1;36mArchPOWER\033[0m PC Installer"
 version="0.0.6"
 printf "$product v$version\n"
 
-if [ "$(id -u)" != "0" ]; then
-	printf "\033[1;31mThis installer must be run as root!\033[0m\n"
-	exit 1
-fi
-
 boot_blkdev=""
 boot_mnt=""
 rootfs_blkdev=""
@@ -51,6 +46,49 @@ cleanup() {
 	fi
 }
 trap cleanup EXIT INT TERM
+
+check_dependencies() {
+	missing_deps=""
+
+	# Core utilities (should always be present)
+	for cmd in find grep cat basename sort mktemp mount umount sync sleep dd; do
+		if ! command -v "$cmd" >/dev/null 2>&1; then
+			missing_deps="$missing_deps $cmd"
+		fi
+	done
+
+	# Partitioning and filesystem tools
+	for cmd in fdisk wipefs mkfs.ext4 mkfs.vfat blkid losetup; do
+		if ! command -v "$cmd" >/dev/null 2>&1; then
+			missing_deps="$missing_deps $cmd"
+		fi
+	done
+
+	# Download tool
+	if ! command -v wget >/dev/null 2>&1; then
+		missing_deps="$missing_deps wget"
+	fi
+
+	# tar with required capabilities
+	if ! command -v tar >/dev/null 2>&1; then
+		missing_deps="$missing_deps tar"
+	fi
+
+	# mountpoint (part of util-linux)
+	if ! command -v mountpoint >/dev/null 2>&1; then
+		missing_deps="$missing_deps mountpoint"
+	fi
+
+	if [ -n "$missing_deps" ]; then
+		printf "\033[1;31mERROR: Missing required dependencies:$missing_deps\033[0m\n"
+		printf "\nPlease install the following packages:\n"
+		printf "  Debian/Ubuntu: apt install util-linux e2fsprogs dosfstools wget tar fdisk\n"
+		printf "  Fedora/RHEL:   dnf install util-linux e2fsprogs dosfstools wget tar\n"
+		printf "  Arch/Garuda:   pacman -S util-linux e2fsprogs dosfstools wget tar\n"
+		printf "  Gentoo:        emerge sys-apps/util-linux sys-fs/e2fsprogs sys-fs/dosfstools net-misc/wget\n"
+		exit 1
+	fi
+}
 
 rescan_bdevs() {
 	all_bdevs=$(find /sys/block/ -mindepth 1 -maxdepth 1 \
@@ -494,6 +532,13 @@ EOF
 # ====
 # Start of the actual installer process
 # ====
+check_dependencies
+
+if [ "$(id -u)" != "0" ]; then
+	printf "\033[1;31mThis installer must be run as root!\033[0m\n"
+	exit 1
+fi
+
 echo "We need to gather some info about where you would like to install to..."
 rescan_bdevs
 
