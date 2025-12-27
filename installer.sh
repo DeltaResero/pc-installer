@@ -10,6 +10,7 @@ rootfs_blkdev=""
 rootfs_mnt=""
 all_bdevs=""
 seperate_sd_and_rootfs=""
+UDISKS_WAS_RUNNING=""
 
 
 selection=""
@@ -43,6 +44,13 @@ cleanup() {
 	# Remove loop device if it was created
 	if [ -n "$loopdev" ] && losetup "$loopdev" >/dev/null 2>&1; then
 		losetup -d "$loopdev" 2>/dev/null || true
+	fi
+
+	# Ensure udisks2 is restarted if we crashed while it was stopped
+	if [ "$UDISKS_WAS_RUNNING" = "true" ]; then
+		if command -v systemctl >/dev/null 2>&1; then
+			systemctl start udisks2 2>/dev/null || true
+		fi
 	fi
 }
 # Trap INT/TERM separately to ensure exit is called, preventing loop traps
@@ -437,6 +445,25 @@ spinner() {
 	printf "\r[✓] %s complete!       \n" "$msg"
 }
 
+# $1 = "stop" or "start"
+toggle_udisks() {
+	if command -v systemctl >/dev/null 2>&1; then
+		if [ "$1" = "stop" ]; then
+			if systemctl is-active --quiet udisks2; then
+				echo "Suspending udisks2 monitoring..."
+				systemctl stop udisks2
+				UDISKS_WAS_RUNNING=true
+			fi
+		elif [ "$1" = "start" ]; then
+			if [ "$UDISKS_WAS_RUNNING" = "true" ]; then
+				echo "Resuming udisks2 monitoring..."
+				systemctl start udisks2
+				unset UDISKS_WAS_RUNNING
+			fi
+		fi
+	fi
+}
+
 download_or_use_local() {
 	url="$1"
 	filename="$2"
@@ -625,6 +652,9 @@ manual_install() {
 
 	install_boot
 
+	# Stop DE monitoring
+	toggle_udisks stop
+
 	echo "Wiping rootfs..."
 
 	wipefs -a "$rootfs_blkdev" && mkfs.ext4 -O '^verity' -O '^metadata_csum_seed' -L 'arch' "$rootfs_blkdev" || {
@@ -632,6 +662,14 @@ manual_install() {
 		printf "\033[1;31mFailed to format rootfs!\033[0m\n"
 		bug_report "Step: rootfs_format" "Return code: $ret" "Root blkdev: $rootfs_blkdev"
 	}
+
+	# Stabilization pause
+	udevadm settle --timeout=10 2>/dev/null || true
+	sleep 2
+
+	# Resume monitoring
+	toggle_udisks start
+
 	install_root
 
 	do_configure
@@ -690,6 +728,9 @@ automatic_install() {
 
 	echo "Proceeding with installation..."
 
+	# Stop DE monitoring to prevent crashes
+	toggle_udisks stop
+
 	echo "Cleaning disk..."
 	clean_disk "$sd_blkdev"
 
@@ -733,6 +774,14 @@ EOF
 		printf "\033[1;31mFailed to format loopdev!\033[0m\n"
 		bug_report "Step: loopdev_format" "Return code: $ret" "Boot blkdev: $boot_blkdev" "Root blkdev: $rootfs_blkdev"
 	}
+
+	# Wait for the Desktop Environment to notice the new filesystems
+	# This prevents crashing due to event flooding
+	udevadm settle --timeout=10 2>/dev/null || true
+	sleep 2
+
+	# Resume monitoring
+	toggle_udisks start
 
 	install_boot
 	install_root
