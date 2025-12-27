@@ -411,6 +411,18 @@ get_file_size() {
 	fi
 }
 
+spinner() {
+	pid=$!
+	spin='|/-\'
+	i=0
+	while kill -0 "$pid" 2>/dev/null; do
+		i=$(( (i+1) %4 ))
+		printf "\r[%c] Extracting..." "${spin:$i:1}"
+		sleep .1
+	done
+	printf "\r[✓] Extraction Complete!   \n"
+}
+
 download_or_use_local() {
 	url="$1"
 	filename="$2"
@@ -456,7 +468,8 @@ install_boot() {
 		file_size=$(get_file_size "$tarball_name")
 		pv -p -t -e -r -b -s "$file_size" "$tarball_name" | tar xz -C "$boot_mnt/"
 	else
-		tar xzf "$tarball_name" -C "$boot_mnt/"
+		(tar xzf "$tarball_name" -C "$boot_mnt/") &
+		spinner
 	fi
 
 	printf "\033[32mBoot files installed!\033[0m\n"
@@ -476,8 +489,9 @@ install_root() {
 		pv -p -t -e -r -b -s "$file_size" "$tarball_name" | \
 			tar -xP --acls --xattrs --same-owner --same-permissions --numeric-owner --sparse -C "$rootfs_mnt/"
 	else
-		echo "Extracting... (no progress indicator available, please be patient)"
-		tar -xP --acls --xattrs --same-owner --same-permissions --numeric-owner --sparse -f "$tarball_name" -C "$rootfs_mnt/"
+		echo "Extracting... (this might take a while)"
+		(tar -xP --acls --xattrs --same-owner --same-permissions --numeric-owner --sparse -f "$tarball_name" -C "$rootfs_mnt/") &
+		spinner
 	fi
 
 	echo "Syncing to disk..."
