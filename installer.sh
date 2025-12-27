@@ -397,6 +397,20 @@ mount_in_tmpdir_or_die() {
 	echo "$tmp"
 }
 
+# Check if pv (pipe viewer) is available
+has_pv() {
+	command -v pv >/dev/null 2>&1
+}
+
+# Get file size for pv
+get_file_size() {
+	if [ -f "$1" ]; then
+		stat -c%s "$1" 2>/dev/null || stat -f%z "$1" 2>/dev/null || echo "0"
+	else
+		echo "0"
+	fi
+}
+
 download_or_use_local() {
 	url="$1"
 	filename="$2"
@@ -420,7 +434,7 @@ download_or_use_local() {
 
 	# Download file
 	printf "Downloading $filename...\n"
-	if ! wget --continue "$url"; then
+	if ! wget --continue --show-progress --progress=bar:force "$url"; then
 		printf "\033[1;31mFATAL ERROR: Failed to download $filename\033[0m\n"
 		exit 1
 	fi
@@ -437,7 +451,15 @@ install_boot() {
 
 	boot_mnt="$(mount_in_tmpdir_or_die "$boot_blkdev")"
 	echo "Now installing the boot files..."
-	tar xzf "$tarball_name" -C "$boot_mnt/"
+
+	if has_pv; then
+		file_size=$(get_file_size "$tarball_name")
+		pv -p -t -e -r -b -s "$file_size" "$tarball_name" | tar xz -C "$boot_mnt/"
+	else
+		tar xzf "$tarball_name" -C "$boot_mnt/"
+	fi
+
+	printf "\033[32mBoot files installed!\033[0m\n"
 }
 
 install_root() {
@@ -448,8 +470,19 @@ install_root() {
 
 	rootfs_mnt="$(mount_in_tmpdir_or_die "$rootfs_blkdev")"
 	echo "Now installing the rootfs... (this will take a VERY long time on most storage media)"
-	tar -xP --acls --xattrs --same-owner --same-permissions --numeric-owner --sparse -f "$tarball_name" -C "$rootfs_mnt/"
+
+	if has_pv; then
+		file_size=$(get_file_size "$tarball_name")
+		pv -p -t -e -r -b -s "$file_size" "$tarball_name" | \
+			tar -xP --acls --xattrs --same-owner --same-permissions --numeric-owner --sparse -C "$rootfs_mnt/"
+	else
+		echo "Extracting... (no progress indicator available, please be patient)"
+		tar -xP --acls --xattrs --same-owner --same-permissions --numeric-owner --sparse -f "$tarball_name" -C "$rootfs_mnt/"
+	fi
+
+	echo "Syncing to disk..."
 	sync "$rootfs_mnt"
+	printf "\033[32mRootfs installed!\033[0m\n"
 }
 
 
@@ -681,6 +714,14 @@ EOF
 # ====
 # Start of the actual installer process
 # ====
+
+# Check for optional tools
+if ! command -v pv >/dev/null 2>&1; then
+	printf "\033[1;33mNote: Install 'pv' for progress bars during extraction\033[0m\n"
+	printf "  (This is optional, installation will work without it)\n"
+	echo
+fi
+
 check_dependencies
 
 if [ "$(id -u)" != "0" ]; then
