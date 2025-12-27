@@ -58,7 +58,7 @@ check_dependencies() {
 	done
 
 	# Partitioning and filesystem tools
-	for cmd in fdisk wipefs mkfs.ext4 mkfs.vfat blkid losetup; do
+	for cmd in sfdisk wipefs mkfs.ext4 mkfs.vfat blkid losetup; do
 		if ! command -v "$cmd" >/dev/null 2>&1; then
 			missing_deps="$missing_deps $cmd"
 		fi
@@ -485,19 +485,17 @@ automatic_install() {
 	done
 
 	echo "Repartitioning..."
-	cat << EOF | fdisk "/dev/$sd_blkdev" > /dev/null
-o
-n
-p
-1
 
-$fatSize
-n
-p
-2
+	# Calculate partition sizes
+	# Convert fatSize from "+256M" format to sectors
+	fat_mb=$(echo "$fatSize" | sed 's/+\([0-9]*\)M/\1/')
+	fat_sectors=$((fat_mb * 1024 * 1024 / 512))
 
-
-w
+	# Create partition table with sfdisk
+	cat << EOF | sfdisk "/dev/$sd_blkdev"
+label: dos
+start=2048, size=$fat_sectors, type=c, bootable
+type=83
 EOF
 
 	# set up a loop device so we get a consistent partition scheme of /dev/loopXp#
