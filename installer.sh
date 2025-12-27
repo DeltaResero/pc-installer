@@ -79,6 +79,13 @@ check_dependencies() {
 		missing_deps="$missing_deps mountpoint"
 	fi
 
+	# Optional but recommended tools
+	for cmd in partprobe udevadm; do
+		if ! command -v "$cmd" >/dev/null 2>&1; then
+			printf "\033[1;33mWARNING: $cmd not found (recommended but optional)\033[0m\n"
+		fi
+	done
+
 	if [ -n "$missing_deps" ]; then
 		printf "\033[1;31mERROR: Missing required dependencies:$missing_deps\033[0m\n"
 		printf "\nPlease install the following packages:\n"
@@ -504,10 +511,18 @@ EOF
 		printf "\033[1;31mLoop device creation failed!\033[0m\n"
 		bug_report "Step: loopdev_create" "Return code: $ret"
 	}
+	partprobe "$loopdev" 2>/dev/null || true
+	udevadm settle --timeout=10 2>/dev/null || sleep 1
 
-	echo "Giving the kernel a few seconds to populate the partition table"
+	echo "Synchronizing partition table with kernel..."
 	sync
-	sleep 3
+
+	partprobe "/dev/$sd_blkdev" 2>/dev/null || true
+
+	udevadm settle --timeout=10 2>/dev/null || {
+		echo "Waiting for device nodes to appear..."
+		sleep 2
+	}
 
 	boot_blkdev="${loopdev}p1"
 	rootfs_blkdev="${loopdev}p2"
