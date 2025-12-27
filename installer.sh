@@ -500,10 +500,10 @@ install_root() {
 	if has_pv; then
 		file_size=$(get_file_size "$tarball_name")
 		pv -p -t -e -r -b -s "$file_size" "$tarball_name" | \
-			tar -xP --acls --xattrs --same-owner --same-permissions --numeric-owner --sparse -C "$rootfs_mnt/"
+			tar -xzP --acls --xattrs --same-owner --same-permissions --numeric-owner --sparse -C "$rootfs_mnt/"
 	else
 		echo "Extracting... (this might take a while)"
-		(tar -xP --acls --xattrs --same-owner --same-permissions --numeric-owner --sparse -f "$tarball_name" -C "$rootfs_mnt/") &
+		(tar -xzP --acls --xattrs --same-owner --same-permissions --numeric-owner --sparse -f "$tarball_name" -C "$rootfs_mnt/") &
 		spinner
 	fi
 
