@@ -33,6 +33,25 @@ bug_report() {
 	exit 1
 }
 
+cleanup() {
+	# Only attempt cleanup if variables are set
+	if [ -n "$boot_mnt" ] && mountpoint -q "$boot_mnt" 2>/dev/null; then
+		umount "$boot_mnt" 2>/dev/null || true
+		rmdir "$boot_mnt" 2>/dev/null || true
+	fi
+
+	if [ -n "$rootfs_mnt" ] && mountpoint -q "$rootfs_mnt" 2>/dev/null; then
+		umount "$rootfs_mnt" 2>/dev/null || true
+		rmdir "$rootfs_mnt" 2>/dev/null || true
+	fi
+
+	# Remove loop device if it was created
+	if [ -n "$loopdev" ] && losetup "$loopdev" >/dev/null 2>&1; then
+		losetup -d "$loopdev" 2>/dev/null || true
+	fi
+}
+trap cleanup EXIT INT TERM
+
 rescan_bdevs() {
 	all_bdevs=$(find /sys/block/ -mindepth 1 -maxdepth 1 \
 		! -name "loop*" ! -name "sr*" ! -name "ram*" ! -name "zram*" -exec basename {} \;)
@@ -356,6 +375,8 @@ do_configure() {
 
 unmount_and_cleanup() {
 	printf "\033[32mSuccess!  Now syncing to disk and cleaning up, please wait...\n"
+	sync
+
 	umount "$boot_mnt" || {
 		printf "\033[1;31mFATAL ERROR: Failed to unmount boot partition.\033[0m\n"
 		bug_report "Step: unmount_and_cleanup_boot" "Return code: $ret" "Boot mnt: $boot_mnt" "Root mnt: $rootfs_mnt"
