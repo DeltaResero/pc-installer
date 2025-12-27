@@ -397,15 +397,43 @@ mount_in_tmpdir_or_die() {
 	echo "$tmp"
 }
 
+download_or_use_local() {
+	url="$1"
+	filename="$2"
 
+	# Check if local file exists
+	if [ -f "./$filename" ]; then
+		printf "\033[33mFound local file: $filename\033[0m\n"
+		printf "Use local file? [Y/n] "
+		read -r use_local
+		case "$use_local" in
+			n|N|no|NO)
+				printf "Removing local file to re-download...\n"
+				rm -f "./$filename"
+				;;
+			*)
+				printf "\033[1;32mUsing local file!\033[0m\n"
+				return 0
+				;;
+		esac
+	fi
 
-install_boot() {
-	echo "Now downloading the boot files..."
-	tarball_name="wii_linux_sd_files_archpower-latest.tar.gz"
-	if ! wget --continue "https://wii-linux.org/files/$tarball_name"; then
-		printf "\033[1;31mFATAL ERROR: Failed to download boot files.\033[0m\n"
+	# Download file
+	printf "Downloading $filename...\n"
+	if ! wget --continue "$url"; then
+		printf "\033[1;31mFATAL ERROR: Failed to download $filename\033[0m\n"
 		exit 1
 	fi
+
+	printf "\033[32mDownload complete!\033[0m\n"
+	return 0
+}
+
+install_boot() {
+	tarball_name="wii_linux_sd_files_archpower-latest.tar.gz"
+	base_url="https://wii-linux.org/files"
+
+	download_or_use_local "$base_url/$tarball_name" "$tarball_name"
 
 	boot_mnt="$(mount_in_tmpdir_or_die "$boot_blkdev")"
 	echo "Now installing the boot files..."
@@ -414,11 +442,9 @@ install_boot() {
 
 install_root() {
 	tarball_name="wii_linux_rootfs_archpower-latest.tar.gz"
-	echo "Now downloading the rootfs..."
-	if ! wget --continue "https://wii-linux.org/files/$tarball_name"; then
-		printf "\033[1;31mFATAL ERROR: Failed to download rootfs.\033[0m\n"
-		exit 1
-	fi
+	base_url="https://wii-linux.org/files"
+
+	download_or_use_local "$base_url/$tarball_name" "$tarball_name"
 
 	rootfs_mnt="$(mount_in_tmpdir_or_die "$rootfs_blkdev")"
 	echo "Now installing the rootfs... (this will take a VERY long time on most storage media)"
