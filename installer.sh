@@ -583,6 +583,81 @@ do_configure() {
 		ln -sf "/usr/lib/systemd/system/sshd.service" "$rootfs_mnt/etc/systemd/system/multi-user.target.wants/sshd.service"
 	fi
 
+	# Detect default hostname from the extracted rootfs
+	if [ -f "$rootfs_mnt/etc/hostname" ]; then
+		default_hostname=$(head -n 1 "$rootfs_mnt/etc/hostname" | tr -d '[:space:]')
+	else
+		default_hostname="unknown"
+	fi
+
+	while true; do
+		# discard any double-enter taps or similar
+		timeout 0.1 dd if=/dev/stdin bs=1 count=10000 of=/dev/null 2>/dev/null || true
+
+		printf "\033[33mThe current hostname is '\033[1;36m$default_hostname\033[33m'.\n"
+		printf "Would you like to set a custom hostname for this Wii?\033[0m [Y/n] "
+
+		read -r yesno
+		case "$yesno" in
+			n|N|no|NO) set_hostname=false ;;
+			y|Y|yes|YES|"") set_hostname=true ;;
+			*) printf "\033[1;31mInvalid answer!  Please try again.\033[0m\n"; continue ;;
+		esac
+		break
+	done
+
+	if [ "$set_hostname" = "true" ]; then
+		while true; do
+			printf "Enter hostname (e.g., 'mywii', 'wii-living-room'): "
+			read -r hostname
+
+			# Validate hostname
+			if [ -z "$hostname" ]; then
+				printf "\033[1;31mHostname cannot be empty.\033[0m\n"
+				continue
+			fi
+
+			# Check for valid hostname characters (RFC 1123)
+			# Allow: a-z, A-Z, 0-9, hyphens (not at start/end)
+			if ! echo "$hostname" | grep -qE '^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$'; then
+				printf "\033[1;31mInvalid hostname.\033[0m\n"
+				printf "Hostnames must:\n"
+				printf "  - Be 1-63 characters long\n"
+				printf "  - Contain only letters, numbers, and hyphens\n"
+				printf "  - Not start or end with a hyphen\n"
+				continue
+			fi
+
+			# Convert to lowercase for consistency
+			hostname=$(echo "$hostname" | tr '[:upper:]' '[:lower:]')
+
+			printf "Set hostname to '\033[1;32m$hostname\033[0m'? [Y/n] "
+			read -r confirm
+			case "$confirm" in
+				n|N|no|NO) continue ;;
+				*) break ;;
+			esac
+		done
+
+		# Set hostname in /etc/hostname
+		echo "$hostname" > "$rootfs_mnt/etc/hostname"
+
+		# Update /etc/hosts
+		# Remove old hostname entries and add new one
+		if [ -f "$rootfs_mnt/etc/hosts" ]; then
+			# Backup original
+			cp "$rootfs_mnt/etc/hosts" "$rootfs_mnt/etc/hosts.bak"
+
+			# Remove lines with 127.0.1.1 (local hostname)
+			grep -v "^127.0.1.1" "$rootfs_mnt/etc/hosts.bak" > "$rootfs_mnt/etc/hosts" || true
+		fi
+
+		# Add new hostname entry
+		echo "127.0.1.1	$hostname" >> "$rootfs_mnt/etc/hosts"
+
+		printf "\033[32mHostname set to '$hostname'!\033[0m\n"
+	fi
+
 	# TODO: More here.... set up user account?
 }
 
