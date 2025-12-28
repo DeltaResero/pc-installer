@@ -655,13 +655,32 @@ manual_install() {
 	# Stop DE monitoring
 	toggle_udisks stop
 
-	echo "Wiping rootfs..."
+	echo "Formatting..."
 
-	wipefs -a "$rootfs_blkdev" && mkfs.ext4 -O '^verity' -O '^metadata_csum_seed' -L 'arch' "$rootfs_blkdev" || {
-		ret="$?"
+	# Create a temp log file to capture mkfs output
+	fmt_log=$(mktemp)
+
+	# Run wipefs and mkfs in background, redirecting output to log
+	{
+		wipefs -a "$rootfs_blkdev" && \
+		mkfs.ext4 -O '^verity' -O '^metadata_csum_seed' -L 'arch' "$rootfs_blkdev"
+	} > "$fmt_log" 2>&1 &
+
+	# Run spinner
+	spinner "Formatting rootfs"
+
+	# Check exit code of the background process
+	wait $!
+	ret=$?
+
+	if [ $ret -ne 0 ]; then
 		printf "\033[1;31mFailed to format rootfs!\033[0m\n"
+		echo "--- Error Log ---"
+		cat "$fmt_log"
+		rm -f "$fmt_log"
 		bug_report "Step: rootfs_format" "Return code: $ret" "Root blkdev: $rootfs_blkdev"
-	}
+	fi
+	rm -f "$fmt_log"
 
 	# Stabilization pause
 	udevadm settle --timeout=10 2>/dev/null || true
@@ -769,11 +788,27 @@ EOF
 	rootfs_blkdev="${loopdev}p2"
 
 	echo "Formatting..."
-	mkfs.vfat -F 32 "$boot_blkdev" && mkfs.ext4 -O '^verity' -O '^metadata_csum_seed' -L 'arch' "$rootfs_blkdev" || {
-		ret="$?"
-		printf "\033[1;31mFailed to format loopdev!\033[0m\n"
+
+	fmt_log=$(mktemp)
+
+	{
+		mkfs.vfat -F 32 "$boot_blkdev" && \
+		mkfs.ext4 -O '^verity' -O '^metadata_csum_seed' -L 'arch' "$rootfs_blkdev"
+	} > "$fmt_log" 2>&1 &
+
+	spinner "Formatting partitions"
+
+	wait $!
+	ret=$?
+
+	if [ $ret -ne 0 ]; then
+		printf "\033[1;31mFailed to format partitions!\033[0m\n"
+		echo "--- Error Log ---"
+		cat "$fmt_log"
+		rm -f "$fmt_log"
 		bug_report "Step: loopdev_format" "Return code: $ret" "Boot blkdev: $boot_blkdev" "Root blkdev: $rootfs_blkdev"
-	}
+	fi
+	rm -f "$fmt_log"
 
 	# Wait for the Desktop Environment to notice the new filesystems
 	# This prevents crashing due to event flooding
