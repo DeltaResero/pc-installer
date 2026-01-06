@@ -51,6 +51,7 @@ cleanup() {
 		if command -v systemctl >/dev/null 2>&1; then
 			systemctl start udisks2 2>/dev/null || true
 		fi
+		unset UDISKS_WAS_RUNNING
 	fi
 }
 # Trap INT/TERM separately to ensure exit is called, preventing loop traps
