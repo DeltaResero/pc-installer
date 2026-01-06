@@ -99,7 +99,7 @@ check_dependencies() {
 	if [ -n "$missing_deps" ]; then
 		printf "\033[1;31mERROR: Missing required dependencies:$missing_deps\033[0m\n"
 		printf "\nPlease install the following packages:\n"
-		printf "  Debian/Ubuntu: apt install util-linux e2fsprogs dosfstools wget tar fdisk\n"
+		printf "  Debian/Ubuntu: apt install util-linux e2fsprogs dosfstools wget tar\n"
 		printf "  Fedora/RHEL:   dnf install util-linux e2fsprogs dosfstools wget tar\n"
 		printf "  Arch/Garuda:   pacman -S util-linux e2fsprogs dosfstools wget tar\n"
 		printf "  Gentoo:        emerge sys-apps/util-linux sys-fs/e2fsprogs sys-fs/dosfstools net-misc/wget\n"
