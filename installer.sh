@@ -436,6 +436,13 @@ get_file_size() {
 spinner() {
 	pid=$!
 	msg="$1"
+
+	# Check if PID is valid (process might have finished already)
+	if ! kill -0 "$pid" 2>/dev/null; then
+		printf "\r[✓] %s complete!       \n" "$msg"
+		return 0
+	fi
+
 	spin='|/-\'
 	i=0
 	while kill -0 "$pid" 2>/dev/null; do
