@@ -716,8 +716,14 @@ manual_install() {
 	printf "\033[1;33m╚════════════════════════════════════════════════════════════╝\033[0m\n"
 	echo
 
-	printf "Boot partition: $boot_blkdev\n"
-	printf "Root partition: $rootfs_blkdev\n"
+	# Get sizes for confirmation display
+	boot_size=$(blockdev --getsize64 "$boot_blkdev" 2>/dev/null || echo 0)
+	boot_size=$(formatSize "$boot_size")
+	root_size=$(blockdev --getsize64 "$rootfs_blkdev" 2>/dev/null || echo 0)
+	root_size=$(formatSize "$root_size")
+
+	printf "Boot partition: \033[1;36m$boot_blkdev\033[0m ($boot_size)\n"
+	printf "Root partition: \033[1;36m$rootfs_blkdev\033[0m ($root_size)\n"
 	echo
 	printf "\033[1;33mThe installer will now:\033[0m\n"
 	printf "  1. Format $boot_blkdev as FAT32 (if needed)\n"
