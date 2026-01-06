@@ -866,12 +866,8 @@ EOF
 	echo "Synchronizing partition table with kernel..."
 	sync
 
-	partprobe "/dev/$sd_blkdev" 2>/dev/null || true
-
-	udevadm settle --timeout=10 2>/dev/null || {
-		echo "Waiting for device nodes to appear..."
-		sleep 2
-	}
+	# Allow kernel time to update
+	udevadm settle --timeout=10 2>/dev/null || sleep 2
 
 	boot_blkdev="${loopdev}p1"
 	rootfs_blkdev="${loopdev}p2"
