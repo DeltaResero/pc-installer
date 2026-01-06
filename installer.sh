@@ -137,7 +137,13 @@ select_disk() {
 		size=$((size * 512))
 		size=$(formatSize $size)
 
-		echo "[$i] /dev/$dev - $size"
+		# Check if removable (typically SD cards/USB drives)
+		removable=""
+		if [ -f "/sys/block/$dev/removable" ] && [ "$(cat "/sys/block/$dev/removable")" = "1" ]; then
+			removable=" \033[32m(Removable)\033[0m"
+		fi
+
+		printf "[$i] /dev/$dev - $size$removable\n"
 		i=$((i + 1))
 	done
 	i=1
