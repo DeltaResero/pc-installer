@@ -42,10 +42,6 @@ cleanup() {
 		rmdir "$rootfs_mnt" 2>/dev/null || true
 	fi
 
-	# Remove loop device if it was created
-	if [ -n "$loopdev" ] && losetup "$loopdev" >/dev/null 2>&1; then
-		losetup -d "$loopdev" 2>/dev/null || true
-	fi
 
 	# Ensure udisks2 is restarted if we crashed while it was stopped
 	if [ "$UDISKS_WAS_RUNNING" = "true" ]; then
@@ -70,7 +66,7 @@ check_dependencies() {
 	done
 
 	# Partitioning and filesystem tools
-	for cmd in sfdisk wipefs mkfs.ext4 mkfs.vfat blkid losetup; do
+	for cmd in sfdisk wipefs mkfs.ext4 mkfs.vfat blkid; do
 		if ! command -v "$cmd" >/dev/null 2>&1; then
 			missing_deps="$missing_deps $cmd"
 		fi
@@ -862,23 +858,19 @@ start=2048, size=$fat_sectors, type=c, bootable
 type=83
 EOF
 
-	# set up a loop device so we get a consistent partition scheme of /dev/loopXp#
-	loopdev="$(losetup --direct-io=on --show -P -f "/dev/$sd_blkdev")" && [ "$loopdev" != "" ] || {
-		ret="$?"
-		printf "\033[1;31mLoop device creation failed!\033[0m\n"
-		bug_report "Step: loopdev_create" "Return code: $ret"
-	}
-	partprobe "$loopdev" 2>/dev/null || true
-	udevadm settle --timeout=10 2>/dev/null || sleep 1
-
 	echo "Synchronizing partition table with kernel..."
-	sync
-
-	# Allow kernel time to update
+	partprobe "/dev/$sd_blkdev" 2>/dev/null || true
 	udevadm settle --timeout=10 2>/dev/null || sleep 2
 
-	boot_blkdev="${loopdev}p1"
-	rootfs_blkdev="${loopdev}p2"
+	# Derive partition names: devices ending in a digit (e.g. mmcblk0, nvme0n1)
+	# use a 'p' separator (mmcblk0p1), others just append the number (sda1)
+	if echo "$sd_blkdev" | grep -q '[0-9]$'; then
+		boot_blkdev="/dev/${sd_blkdev}p1"
+		rootfs_blkdev="/dev/${sd_blkdev}p2"
+	else
+		boot_blkdev="/dev/${sd_blkdev}1"
+		rootfs_blkdev="/dev/${sd_blkdev}2"
+	fi
 
 	echo "Formatting..."
 
@@ -917,7 +909,6 @@ EOF
 	do_configure
 
 	unmount_and_cleanup
-	losetup -d "$loopdev"
 }
 # ====
 # Start of the actual installer process
