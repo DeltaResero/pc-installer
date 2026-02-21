@@ -131,7 +131,7 @@ select_disk() {
 	i=1
 	for dev in $all_bdevs; do
 		size=$(cat "/sys/block/$dev/size")
-		size=$((size * 512))
+		size=$((size / 2))
 		size=$(formatSize $size)
 
 		# Check if removable (typically SD cards/USB drives)
@@ -176,7 +176,7 @@ select_part() {
 	i=1
 	for part in $all_parts; do
 		size=$(cat "/sys/block/$1/$part/size")
-		size=$((size * 512))
+		size=$((size / 2))
 		size="$(formatSize "$size")"
 
 		echo "[$i] /dev/$part - $size"
@@ -199,7 +199,7 @@ select_part() {
 
 			# give caller the partition size
 			selection_info=$(cat "/sys/block/$1/$part/size")
-			selection_info=$((selection_info * 512))
+			selection_info=$((selection_info / 2))
 
 			return 0
 		fi
@@ -217,7 +217,7 @@ show_disk_info() {
 
 	# Show size
 	size=$(cat "/sys/block/$disk/size")
-	size=$((size * 512))
+	size=$((size / 2))
 	size=$(formatSize $size)
 	printf "Size: $size\n"
 
@@ -243,7 +243,7 @@ show_disk_info() {
 		printf "\nExisting partitions:\n"
 		for part in $parts; do
 			part_size=$(cat "/sys/block/$disk/$part/size")
-			part_size=$((part_size * 512))
+			part_size=$((part_size / 2))
 			part_size=$(formatSize "$part_size")
 			printf "  /dev/$part - $part_size"
 
@@ -268,13 +268,13 @@ validate_part_selection() {
 	# sanity checks
 
 	if [ "$1" = "root" ]; then
-		size="$((2 * 1024 * 1024 * 1024))"
+		size="$((2 * 1024 * 1024))"
 		size_readable="2GB"
 		name="rootfs"
 		name2="rootfs"
 		correct_type="ext4"
 	elif [ "$1" = "boot" ]; then
-		size="$((256 * 1024 * 1024))"
+		size="$((256 * 1024))"
 		size_readable="256MB"
 		name="boot files"
 		name2="boot"
