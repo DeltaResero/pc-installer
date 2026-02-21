@@ -113,11 +113,10 @@ rescan_bdevs() {
 
 formatSize() {
 	size=$1
-	suffix=""
+	suffix="K"
 	while [ "$size" -gt "1000" ]; do
 		size=$((size / 1000))
 		case $suffix in
-			"") suffix="K" ;;
 			"K") suffix="M" ;;
 			"M") suffix="G" ;;
 			"G") suffix="T" ;;
@@ -365,17 +364,14 @@ select_root_disk() {
 clean_disk() {
 	for dev in $(get_parts "$1") "$1"; do
 		if grep -qw "/dev/$dev" /proc/mounts; then
-			umount "/dev/$dev"
-			ret="$?"
-
-			if [ "$ret" != "0" ]; then
+			if ! umount "/dev/$dev"; then
+				ret=$?
 				printf "\033[1;31mFATAL ERROR: Failed to unmount /dev/$dev\033[0m\n"
 				bug_report "Step: auto_install_unmount" "Return code: $ret"
 			fi
 		fi
 
-		# known unmounted successfully
-		wipefs -a "/dev/$dev"
+		wipefs -a "/dev/$dev" || true
 	done
 }
 
