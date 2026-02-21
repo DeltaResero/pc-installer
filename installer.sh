@@ -247,7 +247,7 @@ show_disk_info() {
 
 			# Show filesystem type if detectable
 			if blkid "/dev/$part" >/dev/null 2>&1; then
-				eval "$(blkid --output=export "/dev/$part" 2>/dev/null)"
+				eval "$(blkid --output=export "/dev/$part" 2>/dev/null || true)"
 				[ -n "$TYPE" ] && printf " ($TYPE)"
 				[ -n "$LABEL" ] && printf " [label: $LABEL]"
 				unset TYPE LABEL
@@ -289,7 +289,7 @@ validate_part_selection() {
 	fi
 
 	# Check filesystem type and warn if formatting will be required
-	eval "$(blkid --output=export "/dev/$selection" 2>/dev/null)"
+	eval "$(blkid --output=export "/dev/$selection" 2>/dev/null || true)"
 	if [ "$TYPE" != "$correct_type" ]; then
 		printf "\033[1;33mThis partition will need to be formatted as $name2 ($correct_type).\n"
 		printf "All existing data on it will be \033[31mERASED\033[33m during installation.\n"
@@ -570,6 +570,7 @@ do_configure() {
 	if [ "$copy_nm" = "true" ]; then
 		if [ -d /etc/NetworkManager/system-connections ] &&
 		! [ -z "$(ls -A /etc/NetworkManager/system-connections)" ]; then
+			mkdir -p "$rootfs_mnt/etc/NetworkManager/system-connections/"
 			cp -a /etc/NetworkManager/system-connections/* "$rootfs_mnt/etc/NetworkManager/system-connections/"
 		fi
 	fi
@@ -588,6 +589,7 @@ do_configure() {
 	done
 
 	if [ "$ssh" = "true" ]; then
+		mkdir -p "$rootfs_mnt/etc/systemd/system/multi-user.target.wants/"
 		ln -sf "/usr/lib/systemd/system/sshd.service" "$rootfs_mnt/etc/systemd/system/multi-user.target.wants/sshd.service"
 	fi
 
