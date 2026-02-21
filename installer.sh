@@ -760,10 +760,12 @@ manual_install() {
 
 	# Format boot if it wasn't already the correct type, always format rootfs
 	{
+		set -e
 		if [ "$boot_needs_format" = "true" ]; then
-			wipefs -a "$boot_blkdev" && mkfs.vfat -F 32 "$boot_blkdev"
+			wipefs -a "$boot_blkdev"
+			mkfs.vfat -F 32 "$boot_blkdev"
 		fi
-		wipefs -a "$rootfs_blkdev" && \
+		wipefs -a "$rootfs_blkdev"
 		mkfs.ext4 -O '^encrypt' -O '^verity' -O '^metadata_csum_seed' -L 'arch' "$rootfs_blkdev"
 	} > "$fmt_log" 2>&1 &
 	fmt_pid=$!
@@ -887,7 +889,8 @@ EOF
 	fmt_log=$(mktemp)
 
 	{
-		mkfs.vfat -F 32 "$boot_blkdev" && \
+		set -e
+		mkfs.vfat -F 32 "$boot_blkdev"
 		mkfs.ext4 -O '^encrypt' -O '^verity' -O '^metadata_csum_seed' -L 'arch' "$rootfs_blkdev"
 	} > "$fmt_log" 2>&1 &
 	fmt_pid=$!
