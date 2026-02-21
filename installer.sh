@@ -681,21 +681,25 @@ unmount_and_cleanup() {
 	spinner "Final sync"
 
 	umount "$boot_mnt" || {
+		ret=$?
 		printf "\033[1;31mFATAL ERROR: Failed to unmount boot partition.\033[0m\n"
 		bug_report "Step: unmount_and_cleanup_boot" "Return code: $ret" "Boot mnt: $boot_mnt" "Root mnt: $rootfs_mnt"
 	}
 
 	rmdir "$boot_mnt" || {
+		ret=$?
 		printf "\033[1;31mFATAL ERROR: Failed to delete temporary mount for boot partition.\033[0m\n"
 		bug_report "Step: unmount_and_cleanup_boot" "Return code: $ret" "Boot mnt: $boot_mnt" "Root mnt: $rootfs_mnt"
 	}
 
 	umount "$rootfs_mnt" || {
+		ret=$?
 		printf "\033[1;31mFATAL ERROR: Failed to unmount rootfs.\033[0m\n"
 		bug_report "Step: unmount_and_cleanup_root" "Return code: $ret" "Boot mnt: $boot_mnt" "Root mnt: $rootfs_mnt"
 	}
 
 	rmdir "$rootfs_mnt" || {
+		ret=$?
 		printf "\033[1;31mFATAL ERROR: Failed to delete temporary mount for rootfs.\033[0m\n"
 		bug_report "Step: unmount_and_cleanup_root" "Return code: $ret" "Boot mnt: $boot_mnt" "Root mnt: $rootfs_mnt"
 	}
