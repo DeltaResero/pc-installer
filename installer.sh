@@ -87,7 +87,7 @@ check_dependencies() {
 	fi
 
 	# Optional but recommended tools
-	for cmd in partprobe udevadm blockdev; do
+	for cmd in partprobe udevadm; do
 		if ! command -v "$cmd" >/dev/null 2>&1; then
 			printf "\033[1;33mWARNING: $cmd not found (recommended but optional)\033[0m\n"
 		fi
@@ -717,11 +717,14 @@ manual_install() {
 	echo
 
 	# Get sizes for confirmation display
-	boot_size=$(blockdev --getsize64 "$boot_blkdev" 2>/dev/null || echo 0)
-	boot_size=$(( boot_size / 1024 ))
+	boot_name=$(basename "$boot_blkdev")
+	boot_size=$(cat "/sys/class/block/$boot_name/size" 2>/dev/null || echo 0)
+	boot_size=$(( boot_size / 2 ))
 	boot_size=$(formatSize "$boot_size")
-	root_size=$(blockdev --getsize64 "$rootfs_blkdev" 2>/dev/null || echo 0)
-	root_size=$(( root_size / 1024 ))
+
+	root_name=$(basename "$rootfs_blkdev")
+	root_size=$(cat "/sys/class/block/$root_name/size" 2>/dev/null || echo 0)
+	root_size=$(( root_size / 2 ))
 	root_size=$(formatSize "$root_size")
 
 	printf "Boot partition: \033[1;36m$boot_blkdev\033[0m ($boot_size)\n"
