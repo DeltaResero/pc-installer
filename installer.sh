@@ -247,7 +247,8 @@ show_disk_info() {
 
 			# Show filesystem type if detectable
 			if blkid "/dev/$part" >/dev/null 2>&1; then
-				eval "$(blkid --output=export "/dev/$part" 2>/dev/null || true)"
+				TYPE=$(blkid -s TYPE -o value "/dev/$part" 2>/dev/null || true)
+				LABEL=$(blkid -s LABEL -o value "/dev/$part" 2>/dev/null || true)
 				[ -n "$TYPE" ] && printf " ($TYPE)"
 				[ -n "$LABEL" ] && printf " [label: $LABEL]"
 				unset TYPE LABEL
@@ -289,12 +290,11 @@ validate_part_selection() {
 	fi
 
 	# Check filesystem type and warn if formatting will be required
-	eval "$(blkid --output=export "/dev/$selection" 2>/dev/null || true)"
+	TYPE=$(blkid -s TYPE -o value "/dev/$selection" 2>/dev/null || true)
 	if [ "$TYPE" != "$correct_type" ]; then
 		printf "\033[1;33mThis partition will need to be formatted as $name2 ($correct_type).\n"
 		printf "All existing data on it will be \033[31mERASED\033[33m during installation.\n"
 		printf "Do you want to continue?\033[0m [y/N] "
-		unset TYPE LABEL
 
 		read -r yesno
 		case $yesno in
@@ -304,8 +304,6 @@ validate_part_selection() {
 			n|N|no|NO)   return 2 ;;
 			*)           return 3 ;;
 		esac
-	else
-		unset TYPE LABEL
 	fi
 }
 
@@ -890,9 +888,7 @@ EOF
 
 	{
 		set -e
-		wipefs -a "$boot_blkdev"
 		mkfs.vfat -F 32 "$boot_blkdev"
-		wipefs -a "$rootfs_blkdev"
 		mkfs.ext4 -O '^encrypt' -O '^verity' -O '^metadata_csum_seed' -L 'arch' "$rootfs_blkdev"
 	} > "$fmt_log" 2>&1 &
 	fmt_pid=$!
