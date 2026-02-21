@@ -760,12 +760,13 @@ manual_install() {
 		wipefs -a "$rootfs_blkdev" && \
 		mkfs.ext4 -O '^verity' -O '^metadata_csum_seed' -L 'arch' "$rootfs_blkdev"
 	} > "$fmt_log" 2>&1 &
+	fmt_pid=$!
 
 	# Run spinner
 	spinner "Formatting rootfs"
 
 	# Check exit code of the background process
-	wait $!
+	wait $fmt_pid
 	ret=$?
 
 	if [ $ret -ne 0 ]; then
@@ -886,10 +887,11 @@ EOF
 		mkfs.vfat -F 32 "$boot_blkdev" && \
 		mkfs.ext4 -O '^verity' -O '^metadata_csum_seed' -L 'arch' "$rootfs_blkdev"
 	} > "$fmt_log" 2>&1 &
+	fmt_pid=$!
 
 	spinner "Formatting partitions"
 
-	wait $!
+	wait $fmt_pid
 	ret=$?
 
 	if [ $ret -ne 0 ]; then
