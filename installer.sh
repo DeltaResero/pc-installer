@@ -42,7 +42,6 @@ cleanup() {
 		rmdir "$rootfs_mnt" 2>/dev/null || true
 	fi
 
-
 	# Ensure udisks2 is restarted if we crashed while it was stopped
 	if [ "$UDISKS_WAS_RUNNING" = "true" ]; then
 		if command -v systemctl >/dev/null 2>&1; then
@@ -88,7 +87,7 @@ check_dependencies() {
 	fi
 
 	# Optional but recommended tools
-	for cmd in partprobe udevadm; do
+	for cmd in partprobe udevadm blockdev; do
 		if ! command -v "$cmd" >/dev/null 2>&1; then
 			printf "\033[1;33mWARNING: $cmd not found (recommended but optional)\033[0m\n"
 		fi
@@ -807,17 +806,17 @@ automatic_install() {
 		case "$fatSz" in
 			q|Q|quit|Quit) printf "\033[33mInstallation cancelled by user.\033[0m\n"; exit 0 ;;
 			*[!0-9]*) printf "\033[1;31mInvalid input!  Please type a number.\033[0m\n"; continue ;;
-			'') fatSize="+256M" ;;
+			'') fatSize="256" ;;
 			*)
 				# valid number
-				fatSize="+${fatSz}M"
+				fatSize="$fatSz"
 		esac
 		unset fatSz
 		break
 	done
 
 	# Calculate partition size in MB for the confirmation prompt
-	fat_mb=$(echo "$fatSize" | sed 's/+\([0-9]*\)M/\1/')
+	fat_mb="$fatSize"
 
 	echo
 	printf "\033[1;33m╔════════════════════════════════════════════════════════════╗\033[0m\n"
