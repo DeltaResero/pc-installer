@@ -816,12 +816,12 @@ manual_install() {
 
 automatic_install() {
 	# currently, boot_blkdev is our SD Card.
-	# Let's unmount and erase any partitons on it before we try to repartition
+	# Let's unmount and erase any partitions on it before we try to repartition
 	sd_blkdev="$boot_blkdev"
 
 	fatSize=""
 	while true; do
-		printf "\033[33mHow many MB of space would you like to reserve for the \033[32mFAT32 Boot files / Homebrew partiton\033[33m?\033[0m [default:256, q to quit] "
+		printf "\033[33mHow many MB of space would you like to reserve for the \033[32mFAT32 Boot files / Homebrew partition\033[33m?\033[0m [default:256, q to quit] "
 		read -r fatSz
 		case "$fatSz" in
 			q|Q|quit|Quit) printf "\033[33mInstallation cancelled by user.\033[0m\n"; exit 0 ;;
