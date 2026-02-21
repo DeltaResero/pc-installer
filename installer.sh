@@ -450,11 +450,16 @@ spinner() {
 		return 0
 	fi
 
-	spin='|/-\'
 	i=0
 	while kill -0 "$pid" 2>/dev/null; do
-		i=$(( (i+1) %4 ))
-		printf "\r[%c] %s..." "${spin:$i:1}" "$msg"
+		i=$(( (i+1) % 4 ))
+		case $i in
+			0) frame='|' ;;
+			1) frame='/' ;;
+			2) frame='-' ;;
+			3) frame='\' ;;
+		esac
+		printf "\r[%s] %s..." "$frame" "$msg"
 		sleep .1
 	done
 	printf "\r[✓] %s complete!       \n" "$msg"
