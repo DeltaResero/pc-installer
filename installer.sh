@@ -500,7 +500,11 @@ install_boot() {
 
 	if has_pv; then
 		file_size=$(get_file_size "$tarball_name")
-		pv -p -t -e -r -b -s "$file_size" "$tarball_name" | tar xz -C "$boot_mnt/"
+		pv -p -t -e -r -b -s "$file_size" "$tarball_name" | tar xz -C "$boot_mnt/" || {
+			ret=$?
+			printf "\033[1;31mFATAL ERROR: Failed to extract boot files!\033[0m\n"
+			bug_report "Step: install_boot_extract" "Return code: $ret"
+		}
 	else
 		(tar xzf "$tarball_name" -C "$boot_mnt/") &
 		tar_pid=$!
@@ -527,7 +531,11 @@ install_root() {
 	if has_pv; then
 		file_size=$(get_file_size "$tarball_name")
 		pv -p -t -e -r -b -s "$file_size" "$tarball_name" | \
-			tar -xz --acls --xattrs --same-owner --same-permissions --numeric-owner --sparse -C "$rootfs_mnt/"
+			tar -xz --acls --xattrs --same-owner --same-permissions --numeric-owner --sparse -C "$rootfs_mnt/" || {
+			ret=$?
+			printf "\033[1;31mFATAL ERROR: Failed to extract rootfs!\033[0m\n"
+			bug_report "Step: install_root_extract" "Return code: $ret"
+		}
 	else
 		echo "Extracting... (this might take a while)"
 		(tar -xz --acls --xattrs --same-owner --same-permissions --numeric-owner --sparse -f "$tarball_name" -C "$rootfs_mnt/") &
