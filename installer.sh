@@ -425,7 +425,7 @@ spinner() {
 			0) frame='|' ;;
 			1) frame='/' ;;
 			2) frame='-' ;;
-			3) frame='\' ;;
+			3) frame='\\' ;;
 		esac
 		printf "\r[%s] %s..." "$frame" "$msg"
 		sleep .1
