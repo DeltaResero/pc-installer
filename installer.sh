@@ -226,7 +226,7 @@ show_disk_info() {
 
 	# Show model if available
 	if [ -f "/sys/block/$disk/device/model" ]; then
-		model=$(cat "/sys/block/$disk/device/model" | tr -d ' ')
+		model=$(cat "/sys/block/$disk/device/model" | sed 's/[[:space:]]*$//')
 		printf "Model: $model\n"
 	fi
 
