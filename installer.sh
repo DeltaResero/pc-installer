@@ -717,8 +717,10 @@ manual_install() {
 
 	# Get sizes for confirmation display
 	boot_size=$(blockdev --getsize64 "$boot_blkdev" 2>/dev/null || echo 0)
+	boot_size=$(( boot_size / 1024 ))
 	boot_size=$(formatSize "$boot_size")
 	root_size=$(blockdev --getsize64 "$rootfs_blkdev" 2>/dev/null || echo 0)
+	root_size=$(( root_size / 1024 ))
 	root_size=$(formatSize "$root_size")
 
 	printf "Boot partition: \033[1;36m$boot_blkdev\033[0m ($boot_size)\n"
