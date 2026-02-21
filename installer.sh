@@ -530,7 +530,13 @@ install_boot() {
 		pv -p -t -e -r -b -s "$file_size" "$tarball_name" | tar xz -C "$boot_mnt/"
 	else
 		(tar xzf "$tarball_name" -C "$boot_mnt/") &
+		tar_pid=$!
 		spinner "Extracting"
+		wait $tar_pid || {
+			ret=$?
+			printf "\033[1;31mFATAL ERROR: Failed to extract boot files!\033[0m\n"
+			bug_report "Step: install_boot_extract" "Return code: $ret"
+		}
 	fi
 
 	printf "\033[32mBoot files installed!\033[0m\n"
@@ -552,7 +558,13 @@ install_root() {
 	else
 		echo "Extracting... (this might take a while)"
 		(tar -xzP --acls --xattrs --same-owner --same-permissions --numeric-owner --sparse -f "$tarball_name" -C "$rootfs_mnt/") &
+		tar_pid=$!
 		spinner "Extracting"
+		wait $tar_pid || {
+			ret=$?
+			printf "\033[1;31mFATAL ERROR: Failed to extract rootfs!\033[0m\n"
+			bug_report "Step: install_root_extract" "Return code: $ret"
+		}
 	fi
 
 	echo "Syncing to disk (this WILL take a while)..."
