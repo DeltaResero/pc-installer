@@ -9,7 +9,7 @@ boot_mnt=""
 rootfs_blkdev=""
 rootfs_mnt=""
 all_bdevs=""
-seperate_sd_and_rootfs=""
+separate_sd_and_rootfs=""
 UDISKS_WAS_RUNNING=""
 
 
@@ -368,17 +368,17 @@ select_root_disk() {
 	while true; do
 		printf "\033[33mYou can store \033[32mthe rootfs\033[33m (the actual system files and user data) on a different device.\n"
 		printf "This, however, is highly experimental, and will disable the auto-partitioning feature of this script.\n"
-		printf "Would you like to store the boot files and rootfs on seperate devices?\033[0m [y/N/q] "
+		printf "Would you like to store the boot files and rootfs on separate devices?\033[0m [y/N/q] "
 		read -r yesno
 		case "$yesno" in
-			y|Y|yes|YES) seperate_sd_and_rootfs=true; break ;;
-			n|N|no|NO|"") seperate_sd_and_rootfs=false; break ;;
+			y|Y|yes|YES) separate_sd_and_rootfs=true; break ;;
+			n|N|no|NO|"") separate_sd_and_rootfs=false; break ;;
 			q|Q|quit|QUIT) printf "\033[33mInstallation cancelled by user.\033[0m\n"; exit 0 ;;
 			*) printf "\033[1;31mInvalid option, please try again\033[0m\n" ;;
 		esac
 	done
 
-	if [ "$seperate_sd_and_rootfs" = "true" ]; then
+	if [ "$separate_sd_and_rootfs" = "true" ]; then
 		while ! select_disk; do
 			printf "\033[1;31mInvalid option, please try again\033[0m\n"
 			rescan_bdevs
@@ -954,7 +954,7 @@ boot_blkdev="$selection"
 
 select_root_disk
 
-if [ "$seperate_sd_and_rootfs" = "false" ]; then
+if [ "$separate_sd_and_rootfs" = "false" ]; then
 	while true; do
 		printf "\033[33mWould you like \033[32m[A]utomatic\033[33m or \033[32m[M]anual\033[33m install?\033[0m "
 		read -r doauto
