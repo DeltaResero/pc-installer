@@ -788,10 +788,9 @@ manual_install() {
 	spinner "Formatting rootfs"
 
 	# Check exit code of the background process
-	wait $fmt_pid
-	ret=$?
+	wait $fmt_pid || ret=$?
 
-	if [ $ret -ne 0 ]; then
+	if [ ${ret:-0} -ne 0 ]; then
 		printf "\033[1;31mFailed to format rootfs!\033[0m\n"
 		echo "--- Error Log ---"
 		cat "$fmt_log"
@@ -913,10 +912,9 @@ EOF
 
 	spinner "Formatting partitions"
 
-	wait $fmt_pid
-	ret=$?
+	wait $fmt_pid || ret=$?
 
-	if [ $ret -ne 0 ]; then
+	if [ ${ret:-0} -ne 0 ]; then
 		printf "\033[1;31mFailed to format partitions!\033[0m\n"
 		echo "--- Error Log ---"
 		cat "$fmt_log"
