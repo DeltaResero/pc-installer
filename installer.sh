@@ -744,8 +744,6 @@ manual_install() {
 			;;
 	esac
 
-	install_boot
-
 	# Stop DE monitoring
 	toggle_udisks stop
 
@@ -787,6 +785,7 @@ manual_install() {
 	# Resume monitoring
 	toggle_udisks start
 
+	install_boot
 	install_root
 
 	do_configure
