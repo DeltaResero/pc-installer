@@ -255,6 +255,7 @@ show_disk_info() {
 				eval "$(blkid --output=export "/dev/$part" 2>/dev/null)"
 				[ -n "$TYPE" ] && printf " ($TYPE)"
 				[ -n "$LABEL" ] && printf " [label: $LABEL]"
+				unset TYPE LABEL
 			fi
 			printf "\n"
 		done
