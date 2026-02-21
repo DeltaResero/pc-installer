@@ -11,6 +11,7 @@ rootfs_mnt=""
 all_bdevs=""
 separate_sd_and_rootfs=""
 UDISKS_WAS_RUNNING=""
+boot_needs_format=false
 
 
 selection=""
@@ -293,48 +294,24 @@ validate_part_selection() {
 		return 1
 	fi
 
-	# is vfat?
-	(
-		eval "$(blkid --output=export "/dev/$selection")"
-		if [ "$TYPE" != "$correct_type" ]; then
-			printf "\033[1;33mWe must \033[31mFORMAT\033[33m this partition in order to make it usable for a $name2 partition.\n"
-			printf "Are you \033[31mSURE\033[33m that you want to \033[31mFORMAT\033[33m this partition, and lose \033[31mALL DATA\033[33m on it?\033[0m [y/N] "
+	# Check filesystem type and warn if formatting will be required
+	eval "$(blkid --output=export "/dev/$selection" 2>/dev/null)"
+	if [ "$TYPE" != "$correct_type" ]; then
+		printf "\033[1;33mThis partition will need to be formatted as $name2 ($correct_type).\n"
+		printf "All existing data on it will be \033[31mERASED\033[33m during installation.\n"
+		printf "Do you want to continue?\033[0m [y/N] "
+		unset TYPE LABEL
 
-			read -r yesno
-			case $yesno in
-				y|Y|yes|YES)
-					if [ "$1" = "root" ]; then
-						mkfs.ext4 -O '^encrypt' -O '^verity' -O '^metadata_csum_seed' -L 'arch' "/dev/$selection"
-					elif [ "$1" = "boot" ]; then
-						mkfs.vfat -F 32 "/dev/$selection"
-					fi
-					ret="$?"
-
-					if [ "$ret" != "0" ]; then
-						printf "\033[1;31mFATAL ERROR - Failed to format $name2 partition!\033[0m\n"
-						bug_report "Step: format_part" "Return code: $?"
-					fi
-
-					printf "\033[32mPartition formatted!\033[0m\n"
-					;;
-				n|N|no|NO)   return 2 ;;
-				*)           return 3 ;;
-			esac
-		fi
-	)
-
-	ret="$?"
-	if [ "$ret" = "0" ]; then
-		return 0
-	elif [ "$ret" = "1" ]; then
-		# failed format
-		exit 1
-	elif [ "$ret" = "3" ] || [ "$ret" = "2" ]; then
-		# invalid option / not confirmed
-		return 1
+		read -r yesno
+		case $yesno in
+			y|Y|yes|YES)
+				[ "$1" = "boot" ] && boot_needs_format=true
+				;;
+			n|N|no|NO)   return 2 ;;
+			*)           return 3 ;;
+		esac
 	else
-		# ???
-		bug_report "Step: validate_$1" "Return code: $ret"
+		unset TYPE LABEL
 	fi
 }
 
@@ -777,21 +754,24 @@ manual_install() {
 	# Create a temp log file to capture mkfs output
 	fmt_log=$(mktemp)
 
-	# Run wipefs and mkfs in background, redirecting output to log
+	# Format boot if it wasn't already the correct type, always format rootfs
 	{
+		if [ "$boot_needs_format" = "true" ]; then
+			wipefs -a "$boot_blkdev" && mkfs.vfat -F 32 "$boot_blkdev"
+		fi
 		wipefs -a "$rootfs_blkdev" && \
 		mkfs.ext4 -O '^encrypt' -O '^verity' -O '^metadata_csum_seed' -L 'arch' "$rootfs_blkdev"
 	} > "$fmt_log" 2>&1 &
 	fmt_pid=$!
 
 	# Run spinner
-	spinner "Formatting rootfs"
+	spinner "Formatting"
 
 	# Check exit code of the background process
 	wait $fmt_pid || ret=$?
 
 	if [ ${ret:-0} -ne 0 ]; then
-		printf "\033[1;31mFailed to format rootfs!\033[0m\n"
+		printf "\033[1;31mFailed to format partitions!\033[0m\n"
 		echo "--- Error Log ---"
 		cat "$fmt_log"
 		rm -f "$fmt_log"
