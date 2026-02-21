@@ -890,7 +890,9 @@ EOF
 
 	{
 		set -e
+		wipefs -a "$boot_blkdev"
 		mkfs.vfat -F 32 "$boot_blkdev"
+		wipefs -a "$rootfs_blkdev"
 		mkfs.ext4 -O '^encrypt' -O '^verity' -O '^metadata_csum_seed' -L 'arch' "$rootfs_blkdev"
 	} > "$fmt_log" 2>&1 &
 	fmt_pid=$!
