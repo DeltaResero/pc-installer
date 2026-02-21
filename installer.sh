@@ -768,9 +768,10 @@ manual_install() {
 	spinner "Formatting"
 
 	# Check exit code of the background process
+	ret=0
 	wait $fmt_pid || ret=$?
 
-	if [ ${ret:-0} -ne 0 ]; then
+	if [ "$ret" -ne 0 ]; then
 		printf "\033[1;31mFailed to format partitions!\033[0m\n"
 		echo "--- Error Log ---"
 		cat "$fmt_log"
@@ -853,7 +854,7 @@ automatic_install() {
 	echo "Repartitioning..."
 
 	# Calculate partition sizes in sectors
-	fat_sectors=$((fat_mb * 1024 * 1024 / 512))
+	fat_sectors=$((fat_mb * 2048))
 
 	# Create partition table with sfdisk
 	cat << EOF | sfdisk "/dev/$sd_blkdev"
@@ -888,9 +889,10 @@ EOF
 
 	spinner "Formatting partitions"
 
+	ret=0
 	wait $fmt_pid || ret=$?
 
-	if [ ${ret:-0} -ne 0 ]; then
+	if [ "$ret" -ne 0 ]; then
 		printf "\033[1;31mFailed to format partitions!\033[0m\n"
 		echo "--- Error Log ---"
 		cat "$fmt_log"
