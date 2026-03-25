@@ -473,9 +473,14 @@ download_or_use_local() {
 
 	# Download file
 	printf "Downloading $filename...\n"
-	if ! wget --continue --show-progress --progress=bar:force "$url"; then
+	if ! wget -O "$filename" --continue --show-progress --progress=bar:force "$url"; then
 		printf "\033[1;31mFATAL ERROR: Failed to download $filename\033[0m\n"
 		exit 1
+	fi
+
+	# Make sure regular users can delete/move the downloaded
+	if [ -n "$SUDO_UID" ] && [ -n "$SUDO_GID" ]; then
+		chown "$SUDO_UID:$SUDO_GID" "$filename" 2>/dev/null || true
 	fi
 
 	printf "\033[32mDownload complete!\033[0m\n"
