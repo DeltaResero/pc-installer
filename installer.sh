@@ -58,7 +58,7 @@ check_dependencies() {
 	missing_deps=""
 
 	# Core utilities (should always be present)
-	for cmd in find grep cat basename sort mktemp mount umount sync sleep dd; do
+	for cmd in find grep cat basename dirname readlink awk sort mktemp mount umount sync sleep dd; do
 		if ! command -v "$cmd" >/dev/null 2>&1; then
 			missing_deps="$missing_deps $cmd"
 		fi
@@ -431,6 +431,75 @@ spinner() {
 	printf "\r[✓] %s complete!       \n" "$msg"
 }
 
+sync_progress() {
+	msg="$1"
+	target_path="$2"
+
+	# Determine the base block device (e.g., /dev/sda1 -> sda)
+	part_name=$(basename "$target_path")
+	parent_name=$(basename "$(dirname "$(readlink -f "/sys/class/block/$part_name")" 2>/dev/null)" 2>/dev/null || echo "$part_name")
+
+	if [ -f "/sys/block/$parent_name/stat" ]; then
+		stat_file="/sys/block/$parent_name/stat"
+		dev_name="$parent_name"
+	else
+		stat_file="/sys/block/$part_name/stat"
+		dev_name="$part_name"
+	fi
+
+	if [ -n "$3" ]; then
+		sync "$3" &
+	else
+		sync &
+	fi
+	sync_pid=$!
+
+	# If the sysfs stat file isn't found, gracefully fallback to the regular spinner
+	if [ ! -f "$stat_file" ]; then
+		spinner "$msg"
+		return
+	fi
+
+	i=0
+	ticks=0
+	s1=$(awk '{print $7}' "$stat_file" 2>/dev/null)
+	s1=${s1:-0}
+	kb_s="?"
+
+	while kill -0 "$sync_pid" 2>/dev/null; do
+		i=$(( (i+1) % 4 ))
+		case $i in
+			0) frame="|" ;;
+			1) frame="/" ;;
+			2) frame="-" ;;
+			3) frame="\\" ;;
+		esac
+
+		# Update KB/s calculation every 1 second (10 ticks)
+		if [ "$ticks" -eq 10 ]; then
+			s2=$(awk '{print $7}' "$stat_file" 2>/dev/null)
+			s2=${s2:-0}
+			diff=$((s2 - s1))
+			[ "$diff" -lt 0 ] && diff=0
+			kb_s=$((diff / 2)) # 1 sector = 512 bytes = 0.5 KB
+			s1=$s2
+			ticks=0
+		fi
+
+		if [ "$kb_s" = "?" ]; then
+			printf "\r[%s] %s... (Calculating...)                     " "$frame" "$msg"
+		elif [ "$diff" -gt 0 ]; then
+			printf "\r[%s] %s... (Writing to %s: %s KB/s)      " "$frame" "$msg" "$dev_name" "$kb_s"
+		else
+			printf "\r[%s] %s... (Finishing up)                       " "$frame" "$msg"
+		fi
+
+		sleep .1
+		ticks=$((ticks + 1))
+	done
+	printf "\r[✓] %s complete!                                     \n" "$msg"
+}
+
 # $1 = "stop" or "start"
 toggle_udisks() {
 	if command -v systemctl >/dev/null 2>&1; then
@@ -546,9 +615,8 @@ install_root() {
 		}
 	fi
 
-	echo "Syncing to disk (this WILL take a while)..."
-	sync "$rootfs_mnt" &
-	spinner "Syncing"
+	echo "Syncing to disk..."
+	sync_progress "Syncing" "$rootfs_blkdev" "$rootfs_mnt"
 	printf "\033[32mRootfs installed!\033[0m\n"
 }
 
@@ -680,9 +748,9 @@ do_configure() {
 }
 
 unmount_and_cleanup() {
-	printf "\033[32mSuccess!  Now syncing to disk and cleaning up, please wait...\n"
-	sync &
-	spinner "Final sync"
+	printf "\033[32mSuccess!  Now syncing to disk and cleaning up...\n"
+	printf "Please wait, this final hardware sync can take several minutes.\033[0m\n"
+	sync_progress "Final sync" "$rootfs_blkdev"
 
 	umount "$boot_mnt" || {
 		ret=$?
