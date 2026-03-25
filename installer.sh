@@ -221,7 +221,7 @@ show_disk_info() {
 
 	# Show model if available
 	if [ -f "/sys/block/$disk/device/model" ]; then
-		model=$(cat "/sys/block/$disk/device/model" | sed 's/[[:space:]]*$//')
+		model=$(sed 's/[[:space:]]*$//' "/sys/block/$disk/device/model")
 		printf "Model: $model\n"
 	fi
 
@@ -420,10 +420,10 @@ spinner() {
 	while kill -0 "$pid" 2>/dev/null; do
 		i=$(( (i+1) % 4 ))
 		case $i in
-			0) frame='|' ;;
-			1) frame='/' ;;
-			2) frame='-' ;;
-			3) frame='\\' ;;
+			0) frame="|" ;;
+			1) frame="/" ;;
+			2) frame="-" ;;
+			3) frame="\\" ;;
 		esac
 		printf "\r[%s] %s..." "$frame" "$msg"
 		sleep .1
@@ -615,14 +615,18 @@ do_configure() {
 	done
 
 	if [ "$set_hostname" = "true" ]; then
+		hostname_changed=false
 		while true; do
-			printf "Enter hostname (e.g., 'mywii', 'wii-living-room'): "
+			printf "Enter hostname (leave blank to keep '$default_hostname'): "
 			read -r hostname
 
-			# Validate hostname
 			if [ -z "$hostname" ]; then
-				printf "\033[1;31mHostname cannot be empty.\033[0m\n"
-				continue
+				printf "Keep existing hostname '\033[1;32m$default_hostname\033[0m'? [Y/n] "
+				read -r confirm
+				case "$confirm" in
+					n|N|no|NO) continue ;;
+					*) break ;; # hostname_changed remains false
+				esac
 			fi
 
 			# Check for valid hostname characters (RFC 1123)
@@ -636,34 +640,35 @@ do_configure() {
 				continue
 			fi
 
-			# Convert to lowercase for consistency
-			hostname=$(echo "$hostname" | tr '[:upper:]' '[:lower:]')
-
 			printf "Set hostname to '\033[1;32m$hostname\033[0m'? [Y/n] "
 			read -r confirm
 			case "$confirm" in
 				n|N|no|NO) continue ;;
-				*) break ;;
+				*) hostname_changed=true; break ;;
 			esac
 		done
 
-		# Set hostname in /etc/hostname
-		echo "$hostname" > "$rootfs_mnt/etc/hostname"
+		if [ "$hostname_changed" = "true" ]; then
+			# Set hostname in /etc/hostname
+			echo "$hostname" > "$rootfs_mnt/etc/hostname"
 
-		# Update /etc/hosts
-		# Remove old hostname entries and add new one
-		if [ -f "$rootfs_mnt/etc/hosts" ]; then
-			# Backup original
-			cp "$rootfs_mnt/etc/hosts" "$rootfs_mnt/etc/hosts.bak"
+			# Update /etc/hosts
+			# Remove old hostname entries and add new one
+			if [ -f "$rootfs_mnt/etc/hosts" ]; then
+				# Backup original
+				cp "$rootfs_mnt/etc/hosts" "$rootfs_mnt/etc/hosts.bak"
 
-			# Remove lines with 127.0.1.1 (local hostname)
-			grep -v "^127.0.1.1" "$rootfs_mnt/etc/hosts.bak" > "$rootfs_mnt/etc/hosts" || true
+				# Remove lines with 127.0.1.1 (local hostname)
+				grep -v "^127.0.1.1" "$rootfs_mnt/etc/hosts.bak" > "$rootfs_mnt/etc/hosts" || true
+			fi
+
+			# Add new hostname entry
+			echo "127.0.1.1	$hostname" >> "$rootfs_mnt/etc/hosts"
+
+			printf "\033[32mHostname set to '$hostname'!\033[0m\n"
+		else
+			printf "\033[32mKeeping existing hostname '$default_hostname'.\033[0m\n"
 		fi
-
-		# Add new hostname entry
-		echo "127.0.1.1	$hostname" >> "$rootfs_mnt/etc/hosts"
-
-		printf "\033[32mHostname set to '$hostname'!\033[0m\n"
 	fi
 
 	# TODO: More here.... set up user account?
