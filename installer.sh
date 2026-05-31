@@ -387,7 +387,7 @@ mount_in_tmpdir_or_die() {
 	mount "$1" "$tmp" || {
 		ret="$?"
 		printf "\033[1;31mFATAL ERROR: Failed to mount $1\033[0m\n"
-		[ -d "$tmp" ] && rmdir "$tmp" || true
+		if [ -d "$tmp" ]; then rmdir "$tmp"; fi
 
 		bug_report "Step: mount_in_tmpdir__do_mnt" "Return code: $ret" "To be mounted: $1" "TempDir: $tmp"
 	}
