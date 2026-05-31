@@ -267,13 +267,13 @@ validate_part_selection() {
 	# sanity checks
 
 	if [ "$1" = "root" ]; then
-		size="$((2 * 1024 * 1024))"
-		size_readable="2GB"
+		size="$((1536 * 1024))" # 1.5GB
+		size_readable="1.5GB"
 		name="rootfs"
 		name2="rootfs"
 		correct_type="ext4"
 	elif [ "$1" = "boot" ]; then
-		size="$((256 * 1024))"
+		size="$((256 * 1024))" # 256MB
 		size_readable="256MB"
 		name="boot files"
 		name2="boot"
@@ -283,9 +283,13 @@ validate_part_selection() {
 		bug_report "Step: validate_part" "Param1: $1"
 	fi
 
-	# size >=256M for boot or >=2GB for root?
 	if [ "$selection_info" -lt "$size" ]; then
 		printf "\033[1;31mThis partition is not large enough to hold the $name!\nIt should be $size_readable or larger.\033[0m\n"
+		return 1
+	fi
+
+	if [ "$1" = "boot" ] && [ "$selection_info" -gt 2147483648 ]; then # 2TB in KB
+		printf "\033[1;31mThis partition is too large for FAT32! It must be 2TB or smaller.\033[0m\n"
 		return 1
 	fi
 
@@ -748,8 +752,7 @@ do_configure() {
 }
 
 unmount_and_cleanup() {
-	printf "\033[32mSuccess!  Now syncing to disk and cleaning up...\n"
-	printf "Please wait, this final hardware sync can take several minutes.\033[0m\n"
+	printf "\033[32mSuccess!  Now syncing to disk and cleaning up, please wait...\n"
 	sync_progress "Final sync" "$rootfs_blkdev"
 
 	umount "$boot_mnt" || {
@@ -882,9 +885,26 @@ automatic_install() {
 	# Let's unmount and erase any partitions on it before we try to repartition
 	sd_blkdev="$boot_blkdev"
 
+	sys_size=$(cat "/sys/block/$sd_blkdev/size" 2>/dev/null || echo 0)
+	total_mb=$((sys_size / 2048))
+
+	# The Wii requires an MBR partition table, which has a strict 2TB limit.
+	if [ "$total_mb" -gt 2097152 ]; then
+		printf "\033[1;33mWarning: This drive is larger than 2TB.\nThe Wii (and MBR partition tables) only support up to 2TB.\nOnly the first 2TB of this drive will be used.\033[0m\n"
+		total_mb=2097152
+	fi
+
+	# Minimum space required: 256MB boot + 1536MB (1.5GB) rootfs + 2MB partition table overhead = 1794MB
+	if [ "$total_mb" -lt 1794 ]; then
+		printf "\033[1;31mError: This disk is too small. At least 1.8GB of space is required.\033[0m\n"
+		exit 1
+	fi
+
+	max_fat_mb=$((total_mb - 1536 - 2))
+
 	fatSize=""
 	while true; do
-		printf "\033[33mHow many MB of space would you like to reserve for the \033[32mFAT32 Boot files / Homebrew partition\033[33m?\033[0m [default:256, q to quit] "
+		printf "\033[33mHow many MB of space would you like to reserve for the \033[32mFAT32 Boot files / Homebrew partition\033[33m?\033[0m [default:256, max:%s, q to quit] " "$max_fat_mb"
 		read -r fatSz
 		case "$fatSz" in
 			q|Q|quit|Quit) printf "\033[33mInstallation cancelled by user.\033[0m\n"; exit 0 ;;
@@ -895,6 +915,17 @@ automatic_install() {
 				fatSize="$fatSz"
 		esac
 		unset fatSz
+
+		if [ "$fatSize" -lt 256 ]; then
+			printf "\033[1;31mThe boot partition must be at least 256 MB!\033[0m\n"
+			continue
+		fi
+
+		if [ "$fatSize" -gt "$max_fat_mb" ]; then
+			printf "\033[1;31mThe requested size leaves less than 1.5GB for the root filesystem!\nMaximum allowed is %s MB.\033[0m\n" "$max_fat_mb"
+			continue
+		fi
+
 		break
 	done
 
@@ -939,12 +970,23 @@ automatic_install() {
 	# Calculate partition sizes in sectors
 	fat_sectors=$((fat_mb * 2048))
 
-	# Create partition table with sfdisk
-	cat << EOF | sfdisk "/dev/$sd_blkdev"
+	# If the drive was artificially capped at 2TB, sfdisk needs explicit size instructions
+	# for the second partition to prevent it from failing by trying to span past the MBR limit.
+	if [ "$total_mb" -eq 2097152 ]; then
+		root_sectors=$(( (2097152 - fat_mb - 2) * 2048 ))
+		cat << EOF | sfdisk "/dev/$sd_blkdev"
+label: dos
+start=2048, size=$fat_sectors, type=c, bootable
+type=83, size=$root_sectors
+EOF
+	else
+		# Create partition table with sfdisk
+		cat << EOF | sfdisk "/dev/$sd_blkdev"
 label: dos
 start=2048, size=$fat_sectors, type=c, bootable
 type=83
 EOF
+	fi
 
 	echo "Synchronizing partition table with kernel..."
 	partprobe "/dev/$sd_blkdev" 2>/dev/null || true
