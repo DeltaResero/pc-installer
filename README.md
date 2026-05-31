@@ -35,27 +35,27 @@ the Hostname, SSH, and Network profiles immediately after installation.
 You will need a Linux system with `root` access. Please install the following dependencies for
 your distribution before running the installer.
 
-**Debian / Ubuntu / Linux Mint / Pop!_OS**
+### Debian / Ubuntu / Linux Mint / Pop!_OS
 
 ```bash
 sudo apt update
 sudo apt install util-linux e2fsprogs dosfstools wget tar pv parted
 ```
 
-**Arch Linux / Manjaro / Garuda / CachyOS**
+### Arch Linux / Manjaro / Garuda / CachyOS
 
 ```bash
 sudo pacman -Syu util-linux e2fsprogs dosfstools wget tar pv parted
 ```
 
-**Fedora / RHEL / Bazzite**
+### Fedora / RHEL / Bazzite
 
 ```bash
 # Note: On immutable systems like Bazzite, run this inside a toolbox or distrobox container
 sudo dnf install util-linux e2fsprogs dosfstools wget tar pv parted
 ```
 
-**Gentoo**
+### Gentoo
 
 ```bash
 emerge sys-apps/util-linux sys-fs/e2fsprogs sys-fs/dosfstools net-misc/wget sys-apps/pv sys-block/parted
