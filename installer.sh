@@ -127,6 +127,13 @@ formatSize() {
 }
 
 select_disk() {
+	if [ -z "$all_bdevs" ]; then
+		printf "\033[1;31mNo eligible block devices found.\033[0m\n"
+		printf "Ensure a disk is connected, then press Enter to rescan.\n"
+		read -r _unused
+		return 1
+	fi
+
 	i=1
 	for dev in $all_bdevs; do
 		size=$(cat "/sys/block/$dev/size")
@@ -171,6 +178,12 @@ get_parts() {
 
 select_part() {
 	all_parts=$(get_parts "$1")
+
+	if [ -z "$all_parts" ]; then
+		printf "\033[1;31mNo partitions found on /dev/$1.\033[0m\n"
+		printf "The disk must be partitioned before using manual mode.\n"
+		return 1
+	fi
 
 	i=1
 	for part in $all_parts; do
