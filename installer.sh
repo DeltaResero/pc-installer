@@ -23,7 +23,7 @@ bug_report() {
 	printf "=== $product - BUG REPORT ===\n"
 	echo "VERSION: $version"
 	for arg in "$@"; do
-		printf "$arg\n"
+		printf '%s\n' "$arg"
 	done
 	echo "=== END OF BUG REPORT ==="
 	echo "Now exiting.  Please attach the following bug report and submit a GitHub issue."
@@ -314,21 +314,23 @@ validate_part_selection() {
 validate_and_select_part() {
 	while true; do
 		select_part "$1" || {
-			case "$?" in
+			_rc="$?"
+			case "$_rc" in
 				1) printf "\033[1;31mInvalid option, please try again\033[0m\n"; continue ;;
 				*)
 					printf "\033[1;31mInternal error.  Please report the following info.\033[0m\n"
-					bug_report "Step: select_part" "Return code: $ret" ;;
+					bug_report "Step: select_part" "Return code: $_rc" ;;
 			esac
 		}
 
 		validate_part_selection "$2" || {
-			case "$?" in
+			_rc="$?"
+			case "$_rc" in
 				1) printf "\033[1;31mInvalid option, please try again\033[0m\n"; continue ;;
 				2) printf "\033[1;31mNot confirmed.\033[0m\n"; continue ;;
 				*)
-					printf "\033[1;31mInternal error.  Please report the following info.\033[0m\n";
-					bug_report "Step: validate_part" "Return code: $ret" ;;
+					printf "\033[1;31mInternal error.  Please report the following info.\033[0m\n"
+					bug_report "Step: validate_part" "Return code: $_rc" ;;
 			esac
 		}
 
