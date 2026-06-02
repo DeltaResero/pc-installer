@@ -1068,6 +1068,11 @@ EOF
 # Start of the actual installer process
 # ====
 
+if [ "$(id -u)" != "0" ]; then
+	printf "\033[1;31mThis installer must be run as root!\033[0m\n"
+	exit 1
+fi
+
 # Check for optional tools
 if ! command -v pv >/dev/null 2>&1; then
 	printf "\033[1;33mNote: Install 'pv' for progress bars during extraction\033[0m\n"
@@ -1076,11 +1081,6 @@ if ! command -v pv >/dev/null 2>&1; then
 fi
 
 check_dependencies
-
-if [ "$(id -u)" != "0" ]; then
-	printf "\033[1;31mThis installer must be run as root!\033[0m\n"
-	exit 1
-fi
 
 echo "We need to gather some info about where you would like to install to..."
 rescan_bdevs
