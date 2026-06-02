@@ -302,9 +302,12 @@ validate_part_selection() {
 		return 1
 	fi
 
-	if [ "$1" = "boot" ] && [ "$selection_info" -gt 2147483648 ]; then # 2TB in KB
-		printf "\033[1;31mThis partition is too large for FAT32! It must be 2TB or smaller.\033[0m\n"
-		return 1
+	if [ "$1" = "boot" ]; then
+		sel_mb=$((selection_info / 1024))
+		if [ "$sel_mb" -gt 2097152 ]; then # 2TiB in MiB
+			printf "\033[1;31mThis partition is too large for FAT32! It must be 2TB or smaller.\033[0m\n"
+			return 1
+		fi
 	fi
 
 	# Check filesystem type and warn if formatting will be required
