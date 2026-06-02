@@ -791,6 +791,11 @@ manual_install() {
 	validate_and_select_part "$rootfs_blkdev" "root"
 	rootfs_blkdev="/dev/$selection"
 
+	if [ "$boot_blkdev" = "$rootfs_blkdev" ]; then
+		printf "\033[1;31mError: Boot and root partitions must be different devices!\033[0m\n"
+		exit 1
+	fi
+
 	echo
 	printf "\033[1;33m╔════════════════════════════════════════════════════════════╗\033[0m\n"
 	printf "\033[1;33m║              \033[1;32mReady to Install\033[1;33m                              ║\033[0m\n"
