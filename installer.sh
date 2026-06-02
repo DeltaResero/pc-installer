@@ -736,11 +736,11 @@ do_configure() {
 				cp "$rootfs_mnt/etc/hosts" "$rootfs_mnt/etc/hosts.bak"
 
 				# Remove lines with 127.0.1.1 (local hostname)
-				grep -v "^127.0.1.1" "$rootfs_mnt/etc/hosts.bak" > "$rootfs_mnt/etc/hosts" || true
+				grep -v "^127\.0\.1\.1[[:blank:]]" "$rootfs_mnt/etc/hosts.bak" > "$rootfs_mnt/etc/hosts" || true
 			fi
 
 			# Add new hostname entry
-			echo "127.0.1.1	$hostname" >> "$rootfs_mnt/etc/hosts"
+			printf "127.0.1.1\t%s\n" "$hostname" >> "$rootfs_mnt/etc/hosts"
 
 			printf "\033[32mHostname set to '$hostname'!\033[0m\n"
 		else
