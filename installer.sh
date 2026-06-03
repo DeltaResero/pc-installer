@@ -399,13 +399,13 @@ mount_in_tmpdir_or_die() {
 	tmp="$(mktemp -d /tmp/wii-linux-installer.XXXXXX)" || {
 		ret="$?"
 
-		printf "\033[1;31mFATAL ERROR: Failed to create temporary directory\033[0m\n"
+		printf "\033[1;31mFATAL ERROR: Failed to create temporary directory\033[0m\n" >&2
 		bug_report "Step: mount_in_tmpdir__make_tmpdir" "Return code: $ret"
 	}
 
 	mount "$1" "$tmp" || {
 		ret="$?"
-		printf "\033[1;31mFATAL ERROR: Failed to mount $1\033[0m\n"
+		printf "\033[1;31mFATAL ERROR: Failed to mount $1\033[0m\n" >&2
 		if [ -d "$tmp" ]; then rmdir "$tmp"; fi
 
 		bug_report "Step: mount_in_tmpdir__do_mnt" "Return code: $ret" "To be mounted: $1" "TempDir: $tmp"
