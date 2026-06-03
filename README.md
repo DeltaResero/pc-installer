@@ -58,7 +58,7 @@ sudo dnf install util-linux e2fsprogs dosfstools wget tar pv parted
 ### Gentoo
 
 ```bash
-emerge sys-apps/util-linux sys-fs/e2fsprogs sys-fs/dosfstools net-misc/wget sys-apps/pv sys-block/parted
+emerge app-arch/tar sys-apps/util-linux sys-fs/e2fsprogs sys-fs/dosfstools net-misc/wget sys-apps/pv sys-block/parted
 ```
 
 ## Usage
@@ -104,8 +104,18 @@ the packages listed in the Prerequisites section above.
 
 During partitioning, the script temporarily pauses `udisks2` to prevent your desktop environment
 from interfering. If the script appears to hang, it is likely just waiting for a safe moment to
-proceed or resume the service. Finally, if the automatic formatter fails with loop device errors,
-try running `sudo losetup -D` to clear any stuck loop devices before trying again.
+proceed or resume the service.
+
+## Security Notes
+
+**NetworkManager profiles:** When prompted, the installer can copy Wi-Fi and network profiles
+from your host machine to the Wii's root filesystem. These profiles may contain **plaintext
+credentials** (Wi-Fi passwords, VPN keys, etc.). Anyone with physical access to the SD card
+will be able to read them. Only copy profiles you are comfortable having on removable media.
+
+**Download verification:** Installation tarballs are fetched over HTTPS from `wii-linux.org`.
+The connection is encrypted, but the installer does not perform checksum verification of the
+downloaded files beyond what TLS provides.
 
 ## Community & Support
 
