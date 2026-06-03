@@ -999,14 +999,14 @@ automatic_install() {
 	# for the second partition to prevent it from failing by trying to span past the MBR limit.
 	if [ "$total_mb" -eq 2097152 ]; then
 		root_sectors=$(( (2097152 - fat_mb - 2) * 2048 ))
-		cat << EOF | sfdisk "/dev/$sd_blkdev"
+		cat << EOF | sfdisk "/dev/$sd_blkdev" || { printf "\033[1;31mFATAL ERROR: Failed to partition disk\033[0m\n" >&2; exit 1; }
 label: dos
 start=2048, size=$fat_sectors, type=c, bootable
 type=83, size=$root_sectors
 EOF
 	else
 		# Create partition table with sfdisk
-		cat << EOF | sfdisk "/dev/$sd_blkdev"
+		cat << EOF | sfdisk "/dev/$sd_blkdev" || { printf "\033[1;31mFATAL ERROR: Failed to partition disk\033[0m\n" >&2; exit 1; }
 label: dos
 start=2048, size=$fat_sectors, type=c, bootable
 type=83
