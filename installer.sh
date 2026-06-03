@@ -2,7 +2,7 @@
 set -e
 product="\033[33mWii Linux \033[1;36mArchPOWER\033[0m PC Installer"
 version="0.1.0"
-printf "$product v$version\n"
+printf "%b v%s\n" "$product" "$version"
 
 boot_blkdev=""
 boot_mnt=""
@@ -20,7 +20,7 @@ selection_info=""
 bug_report() {
 	exec >&2
 	echo "Please attach everything below this line!"
-	printf "=== $product - BUG REPORT ===\n"
+	printf "=== %b - BUG REPORT ===\n" "$product"
 	echo "VERSION: $version"
 	for arg in "$@"; do
 		printf '%s\n' "$arg"
