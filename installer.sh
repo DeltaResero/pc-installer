@@ -130,7 +130,7 @@ select_disk() {
 	if [ -z "$all_bdevs" ]; then
 		printf "\033[1;31mNo eligible block devices found.\033[0m\n"
 		printf "Ensure a disk is connected, then press Enter to rescan.\n"
-		read -r _unused
+		read -r _unused || true
 		return 1
 	fi
 
@@ -153,7 +153,7 @@ select_disk() {
 
 	echo
 	printf "Select a disk (or 'q' to quit): "
-	read -r devnum
+	read -r devnum || true
 
 	if [ "$devnum" = "q" ] || [ "$devnum" = "Q" ]; then
 		printf "\033[33mInstallation cancelled by user.\033[0m\n"
@@ -198,7 +198,7 @@ select_part() {
 
 	echo
 	printf "Select a partition (or 'q' to quit): "
-	read -r partnum
+	read -r partnum || true
 
 	if [ "$partnum" = "q" ] || [ "$partnum" = "Q" ]; then
 		printf "\033[33mInstallation cancelled by user.\033[0m\n"
@@ -317,7 +317,7 @@ validate_part_selection() {
 		printf "All existing data on it will be \033[31mERASED\033[33m during installation.\n"
 		printf "Do you want to continue?\033[0m [y/N] "
 
-		read -r yesno
+		read -r yesno || true
 		case $yesno in
 			y|Y|yes|YES)
 				[ "$1" = "boot" ] && boot_needs_format=true
@@ -361,7 +361,7 @@ select_root_disk() {
 		printf "\033[33mYou can store \033[32mthe rootfs\033[33m (the actual system files and user data) on a different device.\n"
 		printf "This, however, is highly experimental, and will disable the auto-partitioning feature of this script.\n"
 		printf "Would you like to store the boot files and rootfs on separate devices?\033[0m [y/N/q] "
-		read -r yesno
+		read -r yesno || true
 		case "$yesno" in
 			y|Y|yes|YES) separate_sd_and_rootfs=true; break ;;
 			n|N|no|NO|"") separate_sd_and_rootfs=false; break ;;
@@ -550,7 +550,7 @@ download_or_use_local() {
 	if [ -f "./$filename" ]; then
 		printf "\033[33mFound local file: $filename\033[0m\n"
 		printf "Use local file? [Y/n] "
-		read -r use_local
+		read -r use_local || true
 		case "$use_local" in
 			n|N|no|NO)
 				printf "Removing local file to re-download...\n"
@@ -652,7 +652,7 @@ do_configure() {
 		# discard any double-enter taps or similar
 		timeout 0.1 dd if=/dev/stdin bs=1 count=10000 of=/dev/null 2>/dev/null || true
 		printf "\033[33mWould you like to copy NetworkManager profiles from your host system?\033[0m [Y/n] "
-		read -r yesno
+		read -r yesno || true
 		case "$yesno" in
 			y|Y|yes|YES|"") copy_nm=true ;;
 			n|N|no|NO) copy_nm=false ;;
@@ -674,7 +674,7 @@ do_configure() {
 		# discard any double-enter taps or similar
 		timeout 0.1 dd if=/dev/stdin bs=1 count=10000 of=/dev/null 2>/dev/null || true
 		printf "\033[33mWould you like to enable the SSH daemon to start automatically for remote login?\033[0m [Y/n] "
-		read -r yesno
+		read -r yesno || true
 		case "$yesno" in
 			y|Y|yes|YES|"") ssh=true ;;
 			n|N|no|NO) ssh=false ;;
@@ -702,7 +702,7 @@ do_configure() {
 		printf "\033[33mThe current hostname is '\033[1;36m$default_hostname\033[33m'.\n"
 		printf "Would you like to set a custom hostname for this Wii?\033[0m [Y/n] "
 
-		read -r yesno
+		read -r yesno || true
 		case "$yesno" in
 			n|N|no|NO) set_hostname=false ;;
 			y|Y|yes|YES|"") set_hostname=true ;;
@@ -715,11 +715,11 @@ do_configure() {
 		hostname_changed=false
 		while true; do
 			printf "Enter hostname (leave blank to keep '$default_hostname'): "
-			read -r hostname
+			read -r hostname || true
 
 			if [ -z "$hostname" ]; then
 				printf "Keep existing hostname '\033[1;32m$default_hostname\033[0m'? [Y/n] "
-				read -r confirm
+				read -r confirm || true
 				case "$confirm" in
 					n|N|no|NO) continue ;;
 					*) break ;; # hostname_changed remains false
@@ -738,7 +738,7 @@ do_configure() {
 			fi
 
 			printf "Set hostname to '\033[1;32m$hostname\033[0m'? [Y/n] "
-			read -r confirm
+			read -r confirm || true
 			case "$confirm" in
 				n|N|no|NO) continue ;;
 				*) hostname_changed=true; break ;;
@@ -842,7 +842,7 @@ manual_install() {
 	printf "\033[1;31m⚠  Data on these partitions will be lost! ⚠\033[0m\n"
 	echo
 	printf "Continue? [yes/NO] "
-	read -r final_confirm
+	read -r final_confirm || true
 
 	case "$final_confirm" in
 		yes|YES)
@@ -930,7 +930,7 @@ automatic_install() {
 	fatSize=""
 	while true; do
 		printf "\033[33mHow many MB of space would you like to reserve for the \033[32mFAT32 Boot files / Homebrew partition\033[33m?\033[0m [default:256, max:%s, q to quit] " "$max_fat_mb"
-		read -r fatSz
+		read -r fatSz || true
 		case "$fatSz" in
 			q|Q|quit|Quit) printf "\033[33mInstallation cancelled by user.\033[0m\n"; exit 0 ;;
 			*[!0-9]*) printf "\033[1;31mInvalid input!  Please type a number.\033[0m\n"; continue ;;
@@ -975,7 +975,7 @@ automatic_install() {
 	printf "\033[1;31m⚠  ALL EXISTING DATA ON THIS DISK WILL BE PERMANENTLY LOST! ⚠\033[0m\n"
 	echo
 	printf "Type 'YES' in CAPITAL letters to continue: "
-	read -r final_confirm
+	read -r final_confirm || true
 
 	if [ "$final_confirm" != "YES" ]; then
 		printf "\033[1;33mInstallation cancelled.\033[0m\n"
@@ -1100,7 +1100,7 @@ select_root_disk
 if [ "$separate_sd_and_rootfs" = "false" ]; then
 	while true; do
 		printf "\033[33mWould you like \033[32m[A]utomatic\033[33m or \033[32m[M]anual\033[33m install?\033[0m "
-		read -r doauto
+		read -r doauto || true
 		case "$doauto" in
 			a|A|auto|Auto|AUTO|automatic|Automatic|AUTOMATIC) automatic_install ;;
 			m|M|man|Man|MAN|manual|Manual|MANUAL) manual_install ;;
