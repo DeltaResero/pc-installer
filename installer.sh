@@ -570,6 +570,12 @@ download_or_use_local() {
 		exit 1
 	fi
 
+	if [ ! -s "$filename" ]; then
+		printf "\033[1;31mFATAL ERROR: Downloaded file is empty or missing: $filename\033[0m\n"
+		rm -f "$filename"
+		exit 1
+	fi
+
 	# Make sure regular users can delete/move the downloaded
 	if [ -n "$SUDO_UID" ] && [ -n "$SUDO_GID" ]; then
 		chown "$SUDO_UID:$SUDO_GID" "$filename" 2>/dev/null || true
