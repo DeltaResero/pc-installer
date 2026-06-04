@@ -31,6 +31,12 @@ bug_report() {
 }
 
 cleanup() {
+	# Kill any background jobs (tar, mkfs, sync) to release mountpoints
+	# before attempting to unmount. Without this, umount fails with EBUSY
+	# and the background process becomes an orphan that can corrupt the disk.
+	kill $(jobs -p) 2>/dev/null || true
+	wait 2>/dev/null || true
+
 	# Only attempt cleanup if variables are set
 	if [ -n "$boot_mnt" ] && mountpoint -q "$boot_mnt" 2>/dev/null; then
 		umount "$boot_mnt" 2>/dev/null || true
