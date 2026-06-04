@@ -114,8 +114,8 @@ rescan_bdevs() {
 formatSize() {
 	size=$1
 	suffix="K"
-	while [ "$size" -gt "1000" ]; do
-		size=$((size / 1000))
+	while [ "$size" -gt "1024" ]; do
+		size=$((size / 1024))
 		case $suffix in
 			"K") suffix="M" ;;
 			"M") suffix="G" ;;
