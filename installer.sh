@@ -864,6 +864,17 @@ manual_install() {
 	# Stop DE monitoring
 	toggle_udisks stop
 
+	# Unmount selected partitions if the host OS has auto-mounted them
+	echo "Unmounting selected partitions..."
+	for _dev in "$boot_blkdev" "$rootfs_blkdev"; do
+		if grep -q "^$_dev " /proc/mounts; then
+			umount "$_dev" || {
+				printf "\033[1;31mFATAL ERROR: Failed to unmount %s\033[0m\n" "$_dev" >&2
+				exit 1
+			}
+		fi
+	done
+
 	echo "Formatting..."
 
 	# Create a temp log file to capture mkfs output
