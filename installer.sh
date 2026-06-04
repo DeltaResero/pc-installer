@@ -236,7 +236,7 @@ show_disk_info() {
 	# Show model if available
 	if [ -f "/sys/block/$disk/device/model" ]; then
 		model=$(sed 's/[[:space:]]*$//' "/sys/block/$disk/device/model")
-		printf "Model: $model\n"
+		printf "Model: %s\n" "$model"
 	fi
 
 	# Show if removable
@@ -264,7 +264,7 @@ show_disk_info() {
 				TYPE=$(blkid -s TYPE -o value "/dev/$part" 2>/dev/null || true)
 				LABEL=$(blkid -s LABEL -o value "/dev/$part" 2>/dev/null || true)
 				[ -n "$TYPE" ] && printf " ($TYPE)"
-				[ -n "$LABEL" ] && printf " [label: $LABEL]"
+				[ -n "$LABEL" ] && printf " [label: %s]" "$LABEL"
 				unset TYPE LABEL
 			fi
 			printf "\n"
@@ -706,7 +706,7 @@ do_configure() {
 		# discard any double-enter taps or similar
 		timeout 0.1 dd if=/dev/stdin bs=1 count=10000 of=/dev/null 2>/dev/null || true
 
-		printf "\033[33mThe current hostname is '\033[1;36m$default_hostname\033[33m'.\n"
+		printf "\033[33mThe current hostname is '\033[1;36m%s\033[33m'.\n\033[0m" "$default_hostname"
 		printf "Would you like to set a custom hostname for this Wii?\033[0m [Y/n] "
 
 		read -r yesno || true
