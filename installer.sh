@@ -672,7 +672,7 @@ do_configure() {
 		! [ -z "$(ls -A /etc/NetworkManager/system-connections)" ]; then
 			mkdir -p "$rootfs_mnt/etc/NetworkManager/system-connections/"
 			chmod 700 "$rootfs_mnt/etc/NetworkManager/system-connections/"
-			cp -a /etc/NetworkManager/system-connections/* "$rootfs_mnt/etc/NetworkManager/system-connections/"
+			cp -a /etc/NetworkManager/system-connections/. "$rootfs_mnt/etc/NetworkManager/system-connections/"
 		fi
 	fi
 
