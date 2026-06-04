@@ -390,7 +390,7 @@ select_root_disk() {
 
 clean_disk() {
 	for dev in $(get_parts "$1") "$1"; do
-		if grep -qw "/dev/$dev" /proc/mounts; then
+		if grep -q "^/dev/$dev " /proc/mounts; then
 			if ! umount "/dev/$dev"; then
 				ret=$?
 				printf "\033[1;31mFATAL ERROR: Failed to unmount /dev/$dev\033[0m\n"
