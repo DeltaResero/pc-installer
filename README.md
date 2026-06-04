@@ -32,8 +32,10 @@ the Hostname, SSH, and Network profiles immediately after installation.
 
 ## Prerequisites
 
-You will need a Linux system with `root` access. Please install the following dependencies for
-your distribution before running the installer.
+You will need a Linux system with `root` access. This script requires a **GNU/Linux environment**
+with GNU coreutils and GNU tar. It will not work on macOS, FreeBSD, or Alpine Linux (which uses
+busybox). Please install the following dependencies for your distribution before running the
+installer.
 
 ### Debian / Ubuntu / Linux Mint / Pop!_OS
 
