@@ -1033,6 +1033,20 @@ EOF
 		rootfs_blkdev="/dev/${sd_blkdev}2"
 	fi
 
+	# Wait for partition device nodes to appear; slow SD cards and USB
+	# adapters can take a moment after partprobe/udevadm settle.
+	echo "Waiting for partitions to initialize..."
+	_wait=0
+	while [ "$_wait" -lt 10 ]; do
+		[ -b "$boot_blkdev" ] && [ -b "$rootfs_blkdev" ] && break
+		sleep 1
+		_wait=$((_wait + 1))
+	done
+	if [ ! -b "$boot_blkdev" ] || [ ! -b "$rootfs_blkdev" ]; then
+		printf "\033[1;31mFATAL ERROR: Partition device nodes did not appear after partitioning.\033[0m\n" >&2
+		exit 1
+	fi
+
 	echo "Formatting..."
 
 	fmt_log=$(mktemp)
