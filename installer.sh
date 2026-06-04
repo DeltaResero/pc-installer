@@ -321,6 +321,7 @@ validate_part_selection() {
 		case $yesno in
 			y|Y|yes|YES)
 				[ "$1" = "boot" ] && boot_needs_format=true
+				return 0
 				;;
 			n|N|no|NO)   return 2 ;;
 			*)           return 3 ;;
