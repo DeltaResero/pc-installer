@@ -58,7 +58,7 @@ check_dependencies() {
 	missing_deps=""
 
 	# Core utilities (should always be present)
-	for cmd in find grep cat basename dirname readlink awk sort mktemp mount umount sync sleep dd; do
+	for cmd in find grep cat basename dirname readlink awk sort mktemp mount umount sync sleep dd stat head tr sed; do
 		if ! command -v "$cmd" >/dev/null 2>&1; then
 			missing_deps="$missing_deps $cmd"
 		fi
@@ -87,7 +87,7 @@ check_dependencies() {
 	fi
 
 	# Optional but recommended tools
-	for cmd in partprobe udevadm; do
+	for cmd in partprobe udevadm timeout; do
 		if ! command -v "$cmd" >/dev/null 2>&1; then
 			printf "\033[1;33mWARNING: $cmd not found (recommended but optional)\033[0m\n"
 		fi
