@@ -918,13 +918,13 @@ manual_install() {
 	udevadm settle --timeout=10 2>/dev/null || true
 	sleep 2
 
-	# Resume monitoring
-	toggle_udisks start
-
 	install_boot
 	install_root
 
 	do_configure
+
+	# Resume DE monitoring only after extraction is complete
+	toggle_udisks start
 
 	unmount_and_cleanup
 }
@@ -1095,13 +1095,13 @@ EOF
 	udevadm settle --timeout=10 2>/dev/null || true
 	sleep 2
 
-	# Resume monitoring
-	toggle_udisks start
-
 	install_boot
 	install_root
 
 	do_configure
+
+	# Resume DE monitoring only after extraction is complete
+	toggle_udisks start
 
 	unmount_and_cleanup
 }
