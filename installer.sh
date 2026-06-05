@@ -38,13 +38,17 @@ cleanup() {
 	wait 2>/dev/null || true
 
 	# Only attempt cleanup if variables are set
-	if [ -n "$boot_mnt" ] && mountpoint -q "$boot_mnt" 2>/dev/null; then
-		umount "$boot_mnt" 2>/dev/null || true
+	if [ -n "$boot_mnt" ] && [ -d "$boot_mnt" ]; then
+		if mountpoint -q "$boot_mnt" 2>/dev/null; then
+			umount "$boot_mnt" 2>/dev/null || true
+		fi
 		rmdir "$boot_mnt" 2>/dev/null || true
 	fi
 
-	if [ -n "$rootfs_mnt" ] && mountpoint -q "$rootfs_mnt" 2>/dev/null; then
-		umount "$rootfs_mnt" 2>/dev/null || true
+	if [ -n "$rootfs_mnt" ] && [ -d "$rootfs_mnt" ]; then
+		if mountpoint -q "$rootfs_mnt" 2>/dev/null; then
+			umount "$rootfs_mnt" 2>/dev/null || true
+		fi
 		rmdir "$rootfs_mnt" 2>/dev/null || true
 	fi
 
@@ -572,20 +576,23 @@ download_or_use_local() {
 
 	# Download file
 	printf "Downloading $filename...\n"
-	if ! wget -O "$filename" --continue --show-progress --progress=bar:force "$url"; then
+	tmp_dl=$(mktemp "/tmp/wii_dl.XXXXXX")
+	if ! wget -O "$tmp_dl" --show-progress --progress=bar:force "$url"; then
+		rm -f "$tmp_dl"
 		printf "\033[1;31mFATAL ERROR: Failed to download $filename\033[0m\n"
 		exit 1
 	fi
+	mv -f "$tmp_dl" "./$filename"
 
-	if [ ! -s "$filename" ]; then
+	if [ ! -s "./$filename" ]; then
 		printf "\033[1;31mFATAL ERROR: Downloaded file is empty or missing: $filename\033[0m\n"
-		rm -f "$filename"
+		rm -f "./$filename"
 		exit 1
 	fi
 
-	# Make sure regular users can delete/move the downloaded
+	# Make sure regular users can delete/move the downloaded file
 	if [ -n "$SUDO_UID" ] && [ -n "$SUDO_GID" ]; then
-		chown "$SUDO_UID:$SUDO_GID" "$filename" 2>/dev/null || true
+		chown "$SUDO_UID:$SUDO_GID" "./$filename" 2>/dev/null || true
 	fi
 
 	printf "\033[32mDownload complete!\033[0m\n"
