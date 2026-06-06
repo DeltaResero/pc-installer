@@ -17,6 +17,7 @@ boot_needs_format=false
 selection=""
 selection_info=""
 fmt_log=""
+_bg_pids=""
 
 bug_report() {
 	exec >&2
@@ -32,10 +33,13 @@ bug_report() {
 }
 
 cleanup() {
-	# Kill any background jobs (tar, mkfs, sync) to release mountpoints
-	# before attempting to unmount. Without this, umount fails with EBUSY
-	# and the background process becomes an orphan that can corrupt the disk.
-	kill $(jobs -p) 2>/dev/null || true
+	# Kill tracked background processes explicitly. kill $(jobs -p) is unreliable
+	# in POSIX sh because command substitutions run in a subshell with an empty
+	# job table (notably dash, which is /bin/sh on Debian/Ubuntu).
+	if [ -n "$_bg_pids" ]; then
+		# shellcheck disable=SC2086 -- word splitting is intentional
+		kill $_bg_pids 2>/dev/null || true
+	fi
 	wait 2>/dev/null || true
 
 	# Only attempt cleanup if variables are set
@@ -497,6 +501,7 @@ sync_progress() {
 		sync &
 	fi
 	sync_pid=$!
+	_bg_pids="${_bg_pids:+$_bg_pids }$sync_pid"
 
 	# If the sysfs stat file isn't found, gracefully fallback to the regular spinner
 	if [ ! -f "$stat_file" ]; then
@@ -652,6 +657,7 @@ install_boot() {
 	else
 		(tar xzf "$tarball_name" --no-same-owner --no-same-permissions -C "$boot_mnt/") &
 		tar_pid=$!
+		_bg_pids="${_bg_pids:+$_bg_pids }$tar_pid"
 		spinner "Extracting"
 		wait $tar_pid || {
 			ret=$?
@@ -684,6 +690,7 @@ install_root() {
 		echo "Extracting... (this might take a while)"
 		(tar -xz --acls --xattrs --same-owner --same-permissions --numeric-owner --sparse -f "$tarball_name" -C "$rootfs_mnt/") &
 		tar_pid=$!
+		_bg_pids="${_bg_pids:+$_bg_pids }$tar_pid"
 		spinner "Extracting"
 		wait $tar_pid || {
 			ret=$?
@@ -938,6 +945,7 @@ manual_install() {
 		mkfs.ext4 -O '^encrypt' -O '^verity' -O '^metadata_csum_seed' -L 'arch' "$rootfs_blkdev"
 	} > "$fmt_log" 2>&1 &
 	fmt_pid=$!
+	_bg_pids="${_bg_pids:+$_bg_pids }$fmt_pid"
 
 	# Run spinner
 	spinner "Formatting"
@@ -1116,6 +1124,7 @@ EOF
 		mkfs.ext4 -O '^encrypt' -O '^verity' -O '^metadata_csum_seed' -L 'arch' "$rootfs_blkdev"
 	} > "$fmt_log" 2>&1 &
 	fmt_pid=$!
+	_bg_pids="${_bg_pids:+$_bg_pids }$fmt_pid"
 
 	spinner "Formatting partitions"
 
