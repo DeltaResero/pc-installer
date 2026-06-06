@@ -33,9 +33,8 @@ the Hostname, SSH, and Network profiles immediately after installation.
 ## Prerequisites
 
 You will need a Linux system with `root` access. This script requires a **GNU/Linux environment**
-with GNU coreutils and GNU tar. It will not work on macOS, FreeBSD, or Alpine Linux (which uses
-busybox). Please install the following dependencies for your distribution before running the
-installer.
+with GNU coreutils and GNU tar. It will not work on macOS or FreeBSD. Please install the following
+dependencies for your distribution before running the installer.
 
 ### Debian / Ubuntu / Linux Mint / Pop!_OS
 
@@ -61,6 +60,13 @@ sudo dnf install util-linux e2fsprogs dosfstools wget tar pv parted
 
 ```bash
 emerge app-arch/tar sys-apps/util-linux sys-fs/e2fsprogs sys-fs/dosfstools net-misc/wget sys-apps/pv sys-block/parted
+```
+
+### Alpine Linux
+
+```bash
+# Note: Must install GNU tar and GNU coreutils to replace the Busybox equivalents
+sudo apk add util-linux e2fsprogs dosfstools wget tar pv parted coreutils
 ```
 
 ## Usage
@@ -104,9 +110,9 @@ emerge app-arch/tar sys-apps/util-linux sys-fs/e2fsprogs sys-fs/dosfstools net-m
 If the script fails with a "Missing required dependencies" error, please ensure you have installed
 the packages listed in the Prerequisites section above.
 
-During partitioning, the script temporarily pauses `udisks2` to prevent your desktop environment
-from interfering. If the script appears to hang, it is likely just waiting for a safe moment to
-proceed or resume the service.
+During partitioning, the script temporarily pauses disk monitoring services (`udisks2` on systemd
+systems, `udevd` on OpenRC systems) to prevent your desktop environment from interfering. If the
+script appears to hang, it is likely just waiting for a safe moment to proceed or resume the service.
 
 ## Security Notes
 
