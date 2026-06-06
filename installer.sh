@@ -984,10 +984,10 @@ manual_install() {
 
 	do_configure
 
-	# Resume DE monitoring only after extraction is complete
-	toggle_udisks start
-
 	unmount_and_cleanup
+
+	# Resume DE monitoring only after partitions are fully unmounted
+	toggle_udisks start
 }
 
 automatic_install() {
@@ -1162,10 +1162,10 @@ EOF
 
 	do_configure
 
-	# Resume DE monitoring only after extraction is complete
-	toggle_udisks start
-
 	unmount_and_cleanup
+
+	# Resume DE monitoring only after partitions are fully unmounted
+	toggle_udisks start
 }
 # ====
 # Start of the actual installer process
