@@ -92,9 +92,15 @@ check_dependencies() {
 		missing_deps="$missing_deps wget"
 	fi
 
-	# tar with required capabilities
+	# tar with required capabilities; must be GNU tar as non-GNU implementations
+	# lack --acls, --xattrs, --numeric-owner, and --sparse support.
 	if ! command -v tar >/dev/null 2>&1; then
 		missing_deps="$missing_deps tar"
+	elif ! tar --version 2>&1 | grep -q "GNU tar"; then
+		printf "\033[1;31mERROR: 'tar' found but it is not GNU tar.\033[0m\n" >&2
+		printf "This script requires GNU tar for ACL, xattr, and sparse file support.\n" >&2
+		printf "Please install GNU tar using your distribution's package manager.\n" >&2
+		exit 1
 	fi
 
 	# mountpoint (part of util-linux)
