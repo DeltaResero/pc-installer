@@ -649,11 +649,19 @@ install_boot() {
 
 	if has_pv; then
 		file_size=$(get_file_size "$tarball_name")
-		pv -p -t -e -r -b -s "$file_size" "$tarball_name" | tar xzf - --no-same-owner --no-same-permissions -C "$boot_mnt/" || {
-			ret=$?
+		# Capture pv's exit code separately: without pipefail (non-POSIX) the
+		# pipeline only surfaces tar's exit code, so a pv failure mid-stream
+		# would go undetected and silently produce a truncated installation.
+		_pv_rc=$(mktemp)
+		{ pv -p -t -e -r -b -s "$file_size" "$tarball_name"; echo $? > "$_pv_rc"; } | \
+			tar xzf - --no-same-owner --no-same-permissions -C "$boot_mnt/"
+		tar_ret=$?
+		pv_ret=$(cat "$_pv_rc" 2>/dev/null || echo 1)
+		rm -f "$_pv_rc"
+		if [ "$tar_ret" -ne 0 ] || [ "$pv_ret" -ne 0 ]; then
 			printf "\033[1;31mFATAL ERROR: Failed to extract boot files!\033[0m\n"
-			bug_report "Step: install_boot_extract" "Return code: $ret"
-		}
+			bug_report "Step: install_boot_extract" "pv exit: $pv_ret" "tar exit: $tar_ret"
+		fi
 	else
 		(tar xzf "$tarball_name" --no-same-owner --no-same-permissions -C "$boot_mnt/") &
 		tar_pid=$!
@@ -680,12 +688,16 @@ install_root() {
 
 	if has_pv; then
 		file_size=$(get_file_size "$tarball_name")
-		pv -p -t -e -r -b -s "$file_size" "$tarball_name" | \
-			tar -xzf - --acls --xattrs --same-owner --same-permissions --numeric-owner --sparse -C "$rootfs_mnt/" || {
-			ret=$?
+		_pv_rc=$(mktemp)
+		{ pv -p -t -e -r -b -s "$file_size" "$tarball_name"; echo $? > "$_pv_rc"; } | \
+			tar -xzf - --acls --xattrs --same-owner --same-permissions --numeric-owner --sparse -C "$rootfs_mnt/"
+		tar_ret=$?
+		pv_ret=$(cat "$_pv_rc" 2>/dev/null || echo 1)
+		rm -f "$_pv_rc"
+		if [ "$tar_ret" -ne 0 ] || [ "$pv_ret" -ne 0 ]; then
 			printf "\033[1;31mFATAL ERROR: Failed to extract rootfs!\033[0m\n"
-			bug_report "Step: install_root_extract" "Return code: $ret"
-		}
+			bug_report "Step: install_root_extract" "pv exit: $pv_ret" "tar exit: $tar_ret"
+		fi
 	else
 		echo "Extracting... (this might take a while)"
 		(tar -xz --acls --xattrs --same-owner --same-permissions --numeric-owner --sparse -f "$tarball_name" -C "$rootfs_mnt/") &
