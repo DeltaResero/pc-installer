@@ -16,6 +16,7 @@ boot_needs_format=false
 
 selection=""
 selection_info=""
+fmt_log=""
 
 bug_report() {
 	exec >&2
@@ -50,6 +51,11 @@ cleanup() {
 			umount "$rootfs_mnt" 2>/dev/null || true
 		fi
 		rmdir "$rootfs_mnt" 2>/dev/null || true
+	fi
+
+	# Clean up format log if the trap fires mid-format
+	if [ -n "$fmt_log" ] && [ -f "$fmt_log" ]; then
+		rm -f "$fmt_log" 2>/dev/null || true
 	fi
 
 	# Ensure udisks2 is restarted if we crashed while it was stopped
