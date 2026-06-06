@@ -58,12 +58,9 @@ cleanup() {
 		rm -f "$fmt_log" 2>/dev/null || true
 	fi
 
-	# Ensure udisks2 is restarted if we crashed while it was stopped
+	# Ensure monitoring is restarted if we crashed while it was stopped
 	if [ "$UDISKS_WAS_RUNNING" = "true" ]; then
-		if command -v systemctl >/dev/null 2>&1; then
-			systemctl start udisks2 2>/dev/null || true
-		fi
-		unset UDISKS_WAS_RUNNING
+		toggle_udisks start
 	fi
 }
 # Trap INT/TERM separately to ensure exit is called, preventing loop traps
@@ -558,7 +555,21 @@ toggle_udisks() {
 		elif [ "$1" = "start" ]; then
 			if [ "$UDISKS_WAS_RUNNING" = "true" ]; then
 				echo "Resuming udisks2 monitoring..."
-				systemctl start udisks2
+				systemctl start udisks2 2>/dev/null || true
+				unset UDISKS_WAS_RUNNING
+			fi
+		fi
+	elif command -v rc-service >/dev/null 2>&1; then
+		if [ "$1" = "stop" ]; then
+			if rc-service udevd status >/dev/null 2>&1; then
+				echo "Suspending udevd monitoring..."
+				rc-service udevd stop 2>/dev/null || true
+				UDISKS_WAS_RUNNING=true
+			fi
+		elif [ "$1" = "start" ]; then
+			if [ "$UDISKS_WAS_RUNNING" = "true" ]; then
+				echo "Resuming udevd monitoring..."
+				rc-service udevd start 2>/dev/null || true
 				unset UDISKS_WAS_RUNNING
 			fi
 		fi
