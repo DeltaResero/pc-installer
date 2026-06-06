@@ -543,6 +543,16 @@ sync_progress() {
 	printf "\r[✓] %s complete!                                     \n" "$msg"
 }
 
+# Portable udev settle: tries udevadm first, falls back to mdev on systems
+# that use it instead. Callers should still follow up with a sleep if needed.
+settle_udev() {
+	if command -v udevadm >/dev/null 2>&1; then
+		udevadm settle --timeout=10 2>/dev/null || true
+	elif command -v mdev >/dev/null 2>&1; then
+		mdev -s 2>/dev/null || true
+	fi
+}
+
 # $1 = "stop" or "start"
 toggle_udisks() {
 	if command -v systemctl >/dev/null 2>&1; then
@@ -945,7 +955,7 @@ manual_install() {
 	rm -f "$fmt_log"
 
 	# Stabilization pause
-	udevadm settle --timeout=10 2>/dev/null || true
+	settle_udev
 	sleep 2
 
 	install_boot
@@ -1069,7 +1079,7 @@ EOF
 
 	echo "Synchronizing partition table with kernel..."
 	partprobe "/dev/$sd_blkdev" 2>/dev/null || true
-	udevadm settle --timeout=10 2>/dev/null || sleep 2
+	settle_udev
 
 	# Derive partition names: devices ending in a digit (e.g. mmcblk0, nvme0n1)
 	# use a 'p' separator (mmcblk0p1), others just append the number (sda1)
@@ -1082,7 +1092,7 @@ EOF
 	fi
 
 	# Wait for partition device nodes to appear; slow SD cards and USB
-	# adapters can take a moment after partprobe/udevadm settle.
+	# adapters can take a moment after partprobe and device settle.
 	echo "Waiting for partitions to initialize..."
 	_wait=0
 	while [ "$_wait" -lt 10 ]; do
@@ -1122,7 +1132,7 @@ EOF
 
 	# Wait for the Desktop Environment to notice the new filesystems
 	# This prevents crashing due to event flooding
-	udevadm settle --timeout=10 2>/dev/null || true
+	settle_udev
 	sleep 2
 
 	install_boot
