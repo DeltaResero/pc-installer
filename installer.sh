@@ -342,8 +342,8 @@ validate_part_selection() {
 				[ "$1" = "boot" ] && boot_needs_format=true
 				return 0
 				;;
-			n|N|no|NO)   return 2 ;;
-			*)           return 3 ;;
+			n|N|no|NO|"") return 2 ;;
+			*)             return 3 ;;
 		esac
 	fi
 }
@@ -365,6 +365,7 @@ validate_and_select_part() {
 			case "$_rc" in
 				1) printf "\033[1;31mInvalid option, please try again\033[0m\n"; continue ;;
 				2) printf "\033[1;31mNot confirmed.\033[0m\n"; continue ;;
+				3) printf "\033[1;31mInvalid answer, please try again\033[0m\n"; continue ;;
 				*)
 					printf "\033[1;31mInternal error.  Please report the following info.\033[0m\n"
 					bug_report "Step: validate_part" "Return code: $_rc" ;;
