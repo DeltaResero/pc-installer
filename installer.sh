@@ -112,12 +112,12 @@ check_dependencies() {
 	# Optional but recommended tools
 	for cmd in partprobe udevadm timeout; do
 		if ! command -v "$cmd" >/dev/null 2>&1; then
-			printf "\033[1;33mWARNING: $cmd not found (recommended but optional)\033[0m\n"
+			printf '\033[1;33mWARNING: %s not found (recommended but optional)\033[0m\n' "$cmd"
 		fi
 	done
 
 	if [ -n "$missing_deps" ]; then
-		printf "\033[1;31mERROR: Missing required dependencies:$missing_deps\033[0m\n"
+		printf '\033[1;31mERROR: Missing required dependencies:%s\033[0m\n' "$missing_deps"
 		printf "\nPlease install the following packages:\n"
 		printf "  Debian/Ubuntu: apt install util-linux e2fsprogs dosfstools wget tar\n"
 		printf "  Fedora/RHEL:   dnf install util-linux e2fsprogs dosfstools wget tar\n"
@@ -137,7 +137,7 @@ rescan_bdevs() {
 formatSize() {
 	size=$1
 	suffix="K"
-	while [ "$size" -gt "1024" ]; do
+	while [ "$size" -ge "1024" ]; do
 		size=$((size / 1024))
 		case $suffix in
 			"K") suffix="M" ;;
@@ -166,10 +166,10 @@ select_disk() {
 		# Check if removable (typically SD cards/USB drives)
 		removable=""
 		if [ -f "/sys/block/$dev/removable" ] && [ "$(cat "/sys/block/$dev/removable")" = "1" ]; then
-			removable=" \033[32m(Removable)\033[0m"
+			removable=$(printf ' \033[32m(Removable)\033[0m')
 		fi
 
-		printf "[$i] /dev/$dev - $size$removable\n"
+		printf '[%s] /dev/%s - %s%s\n' "$i" "$dev" "$size" "$removable"
 		i=$((i + 1))
 	done
 	i=1
@@ -203,7 +203,7 @@ select_part() {
 	all_parts=$(get_parts "$1")
 
 	if [ -z "$all_parts" ]; then
-		printf "\033[1;31mNo partitions found on /dev/$1.\033[0m\n"
+		printf '\033[1;31mNo partitions found on /dev/%s.\033[0m\n' "$1"
 		printf "The disk must be partitioned before using manual mode.\n"
 		return 1
 	fi
@@ -248,13 +248,13 @@ show_disk_info() {
 	disk="$1"
 
 	printf "\033[1;33m=== Disk Information ===\033[0m\n"
-	printf "Device: /dev/$disk\n"
+	printf 'Device: /dev/%s\n' "$disk"
 
 	# Show size
 	size=$(cat "/sys/block/$disk/size")
 	size=$((size / 2))
 	size=$(formatSize $size)
-	printf "Size: $size\n"
+	printf 'Size: %s\n' "$size"
 
 	# Show model if available
 	if [ -f "/sys/block/$disk/device/model" ]; then
@@ -280,13 +280,13 @@ show_disk_info() {
 			part_size=$(cat "/sys/block/$disk/$part/size")
 			part_size=$((part_size / 2))
 			part_size=$(formatSize "$part_size")
-			printf "  /dev/$part - $part_size"
+			printf '  /dev/%s - %s' "$part" "$part_size"
 
 			# Show filesystem type if detectable
 			if blkid "/dev/$part" >/dev/null 2>&1; then
 				TYPE=$(blkid -s TYPE -o value "/dev/$part" 2>/dev/null || true)
 				LABEL=$(blkid -s LABEL -o value "/dev/$part" 2>/dev/null || true)
-				[ -n "$TYPE" ] && printf " ($TYPE)"
+				[ -n "$TYPE" ] && printf ' (%s)' "$TYPE"
 				[ -n "$LABEL" ] && printf " [label: %s]" "$LABEL"
 				unset TYPE LABEL
 			fi
@@ -321,7 +321,7 @@ validate_part_selection() {
 	fi
 
 	if [ "$selection_info" -lt "$size" ]; then
-		printf "\033[1;31mThis partition is not large enough to hold the $name!\nIt should be $size_readable or larger.\033[0m\n"
+		printf '\033[1;31mThis partition is not large enough to hold the %s!\nIt should be %s or larger.\033[0m\n' "$name" "$size_readable"
 		return 1
 	fi
 
@@ -336,7 +336,7 @@ validate_part_selection() {
 	# Check filesystem type and warn if formatting will be required
 	TYPE=$(blkid -s TYPE -o value "/dev/$selection" 2>/dev/null || true)
 	if [ "$TYPE" != "$correct_type" ]; then
-		printf "\033[1;33mThis partition will need to be formatted as $name2 ($correct_type).\n"
+		printf '\033[1;33mThis partition will need to be formatted as %s (%s).\n' "$name2" "$correct_type"
 		printf "All existing data on it will be \033[31mERASED\033[33m during installation.\n"
 		printf "Do you want to continue?\033[0m [y/N] "
 
@@ -411,7 +411,7 @@ clean_disk() {
 		if grep -q "^/dev/$dev " /proc/mounts; then
 			if ! umount "/dev/$dev"; then
 				ret=$?
-				printf "\033[1;31mFATAL ERROR: Failed to unmount /dev/$dev\033[0m\n"
+				printf '\033[1;31mFATAL ERROR: Failed to unmount /dev/%s\033[0m\n' "$dev"
 				bug_report "Step: auto_install_unmount" "Return code: $ret"
 			fi
 		fi
@@ -430,7 +430,7 @@ mount_in_tmpdir_or_die() {
 
 	mount "$1" "$tmp" || {
 		ret="$?"
-		printf "\033[1;31mFATAL ERROR: Failed to mount $1\033[0m\n" >&2
+		printf '\033[1;31mFATAL ERROR: Failed to mount %s\033[0m\n' "$1" >&2
 		if [ -d "$tmp" ]; then rmdir "$tmp"; fi
 
 		bug_report "Step: mount_in_tmpdir__do_mnt" "Return code: $ret" "To be mounted: $1" "TempDir: $tmp"
@@ -513,6 +513,7 @@ sync_progress() {
 	ticks=0
 	s1=$(awk '{print $7}' "$stat_file" 2>/dev/null)
 	s1=${s1:-0}
+	diff=0
 	kb_s="?"
 
 	while kill -0 "$sync_pid" 2>/dev/null; do
@@ -559,6 +560,15 @@ settle_udev() {
 	fi
 }
 
+# Discard any buffered stdin (e.g. accidental double-enter) so the next
+# read prompt starts clean.  Uses timeout if available; silently skips
+# the drain otherwise.
+drain_stdin() {
+	if command -v timeout >/dev/null 2>&1; then
+		timeout 0.1 dd if=/dev/stdin bs=1 count=10000 of=/dev/null 2>/dev/null || true
+	fi
+}
+
 # $1 = "stop" or "start"
 toggle_udisks() {
 	if command -v systemctl >/dev/null 2>&1; then
@@ -598,7 +608,7 @@ download_or_use_local() {
 
 	# Check if local file exists
 	if [ -f "./$filename" ]; then
-		printf "\033[33mFound local file: $filename\033[0m\n"
+		printf '\033[33mFound local file: %s\033[0m\n' "$filename"
 		printf "Use local file? [Y/n] "
 		read -r use_local || true
 		case "$use_local" in
@@ -614,17 +624,17 @@ download_or_use_local() {
 	fi
 
 	# Download file
-	printf "Downloading $filename...\n"
+	printf 'Downloading %s...\n' "$filename"
 	tmp_dl=$(mktemp "/tmp/wii_dl.XXXXXX")
 	if ! wget -O "$tmp_dl" --show-progress --progress=bar:force "$url"; then
 		rm -f "$tmp_dl"
-		printf "\033[1;31mFATAL ERROR: Failed to download $filename\033[0m\n"
+		printf '\033[1;31mFATAL ERROR: Failed to download %s\033[0m\n' "$filename"
 		exit 1
 	fi
 	mv -f "$tmp_dl" "./$filename"
 
 	if [ ! -s "./$filename" ]; then
-		printf "\033[1;31mFATAL ERROR: Downloaded file is empty or missing: $filename\033[0m\n"
+		printf '\033[1;31mFATAL ERROR: Downloaded file is empty or missing: %s\033[0m\n' "$filename"
 		rm -f "./$filename"
 		exit 1
 	fi
@@ -723,7 +733,7 @@ do_configure() {
 
 	while true; do
 		# discard any double-enter taps or similar
-		timeout 0.1 dd if=/dev/stdin bs=1 count=10000 of=/dev/null 2>/dev/null || true
+		drain_stdin
 		printf "\033[33mWould you like to copy NetworkManager profiles from your host system?\033[0m [Y/n] "
 		read -r yesno || true
 		case "$yesno" in
@@ -745,7 +755,7 @@ do_configure() {
 
 	while true; do
 		# discard any double-enter taps or similar
-		timeout 0.1 dd if=/dev/stdin bs=1 count=10000 of=/dev/null 2>/dev/null || true
+		drain_stdin
 		printf "\033[33mWould you like to enable the SSH daemon to start automatically for remote login?\033[0m [Y/n] "
 		read -r yesno || true
 		case "$yesno" in
@@ -770,7 +780,7 @@ do_configure() {
 
 	while true; do
 		# discard any double-enter taps or similar
-		timeout 0.1 dd if=/dev/stdin bs=1 count=10000 of=/dev/null 2>/dev/null || true
+		drain_stdin
 
 		printf "\033[33mThe current hostname is '\033[1;36m%s\033[33m'.\n\033[0m" "$default_hostname"
 		printf "Would you like to set a custom hostname for this Wii?\033[0m [Y/n] "
@@ -787,11 +797,11 @@ do_configure() {
 	if [ "$set_hostname" = "true" ]; then
 		hostname_changed=false
 		while true; do
-			printf "Enter hostname (leave blank to keep '$default_hostname'): "
+			printf "Enter hostname (leave blank to keep '%s'): " "$default_hostname"
 			read -r hostname || true
 
 			if [ -z "$hostname" ]; then
-				printf "Keep existing hostname '\033[1;32m$default_hostname\033[0m'? [Y/n] "
+				printf "Keep existing hostname '\033[1;32m%s\033[0m'? [Y/n] " "$default_hostname"
 				read -r confirm || true
 				case "$confirm" in
 					n|N|no|NO) continue ;;
@@ -810,7 +820,7 @@ do_configure() {
 				continue
 			fi
 
-			printf "Set hostname to '\033[1;32m$hostname\033[0m'? [Y/n] "
+			printf "Set hostname to '\033[1;32m%s\033[0m'? [Y/n] " "$hostname"
 			read -r confirm || true
 			case "$confirm" in
 				n|N|no|NO) continue ;;
@@ -835,9 +845,9 @@ do_configure() {
 			# Add new hostname entry
 			printf "127.0.1.1\t%s\n" "$hostname" >> "$rootfs_mnt/etc/hosts"
 
-			printf "\033[32mHostname set to '$hostname'!\033[0m\n"
+			printf "\033[32mHostname set to '%s'!\033[0m\n" "$hostname"
 		else
-			printf "\033[32mKeeping existing hostname '$default_hostname'.\033[0m\n"
+			printf "\033[32mKeeping existing hostname '%s'.\033[0m\n" "$default_hostname"
 		fi
 	fi
 
@@ -904,12 +914,12 @@ manual_install() {
 	root_size=$(( root_size / 2 ))
 	root_size=$(formatSize "$root_size")
 
-	printf "Boot partition: \033[1;36m$boot_blkdev\033[0m ($boot_size)\n"
-	printf "Root partition: \033[1;36m$rootfs_blkdev\033[0m ($root_size)\n"
+	printf 'Boot partition: \033[1;36m%s\033[0m (%s)\n' "$boot_blkdev" "$boot_size"
+	printf 'Root partition: \033[1;36m%s\033[0m (%s)\n' "$rootfs_blkdev" "$root_size"
 	echo
 	printf "\033[1;33mThe installer will now:\033[0m\n"
-	printf "  1. Format $boot_blkdev as FAT32 (if needed)\n"
-	printf "  2. Format $rootfs_blkdev as ext4\n"
+	printf '  1. Format %s as FAT32 (if needed)\n' "$boot_blkdev"
+	printf '  2. Format %s as ext4\n' "$rootfs_blkdev"
 	printf "  3. Download and install Wii Linux ArchPOWER\n"
 	echo
 	printf "\033[1;31m⚠  Data on these partitions will be lost! ⚠\033[0m\n"
@@ -1052,8 +1062,8 @@ automatic_install() {
 
 	echo
 	printf "\033[1;31mThe automatic installer will:\033[0m\n"
-	printf "  1. \033[1;31mERASE ALL DATA\033[0m on /dev/$sd_blkdev\n"
-	printf "  2. Create a ${fat_mb}MB FAT32 partition for boot files\n"
+	printf '  1. \033[1;31mERASE ALL DATA\033[0m on /dev/%s\n' "$sd_blkdev"
+	printf '  2. Create a %sMB FAT32 partition for boot files\n' "$fat_mb"
 	printf "  3. Create an ext4 partition using remaining space for rootfs\n"
 	printf "  4. Download and install Wii Linux ArchPOWER\n"
 	echo
