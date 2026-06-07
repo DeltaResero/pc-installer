@@ -1,6 +1,7 @@
 #!/bin/sh
 set -e
 product=$(printf '\033[33mWii Linux \033[1;36mArchPOWER\033[0m PC Installer')
+product_plain="Wii Linux ArchPOWER PC Installer"
 version="0.1.0"
 printf "%s v%s\n" "$product" "$version"
 
@@ -22,7 +23,7 @@ _bg_pids=""
 bug_report() {
 	exec >&2
 	echo "Please attach everything below this line!"
-	printf "=== %s - BUG REPORT ===\n" "$product"
+	printf "=== %s - BUG REPORT ===\n" "$product_plain"
 	echo "VERSION: $version"
 	for arg in "$@"; do
 		printf '%s\n' "$arg"
@@ -284,11 +285,11 @@ show_disk_info() {
 
 			# Show filesystem type if detectable
 			if blkid "/dev/$part" >/dev/null 2>&1; then
-				TYPE=$(blkid -s TYPE -o value "/dev/$part" 2>/dev/null || true)
-				LABEL=$(blkid -s LABEL -o value "/dev/$part" 2>/dev/null || true)
-				[ -n "$TYPE" ] && printf ' (%s)' "$TYPE"
-				[ -n "$LABEL" ] && printf " [label: %s]" "$LABEL"
-				unset TYPE LABEL
+				fstype=$(blkid -s TYPE -o value "/dev/$part" 2>/dev/null || true)
+				fslabel=$(blkid -s LABEL -o value "/dev/$part" 2>/dev/null || true)
+				[ -n "$fstype" ] && printf ' (%s)' "$fstype"
+				[ -n "$fslabel" ] && printf " [label: %s]" "$fslabel"
+				unset fstype fslabel
 			fi
 			printf "\n"
 		done
@@ -334,8 +335,8 @@ validate_part_selection() {
 	fi
 
 	# Check filesystem type and warn if formatting will be required
-	TYPE=$(blkid -s TYPE -o value "/dev/$selection" 2>/dev/null || true)
-	if [ "$TYPE" != "$correct_type" ]; then
+	fstype=$(blkid -s TYPE -o value "/dev/$selection" 2>/dev/null || true)
+	if [ "$fstype" != "$correct_type" ]; then
 		printf '\033[1;33mThis partition will need to be formatted as %s (%s).\n' "$name2" "$correct_type"
 		printf "All existing data on it will be \033[31mERASED\033[33m during installation.\n"
 		printf "Do you want to continue?\033[0m [y/N] "
@@ -624,6 +625,8 @@ download_or_use_local() {
 	fi
 
 	# Download file
+	# Print the current working directory to clarify where the file will land
+	printf 'Current working directory: %s\n' "$PWD"
 	printf 'Downloading %s...\n' "$filename"
 	tmp_dl=$(mktemp "/tmp/wii_dl.XXXXXX")
 	if ! wget --timeout=30 --tries=3 -O "$tmp_dl" --show-progress --progress=bar:force "$url"; then
