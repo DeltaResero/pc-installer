@@ -474,7 +474,7 @@ spinner() {
 			3) frame="\\" ;;
 		esac
 		printf "\r[%s] %s..." "$frame" "$msg"
-		sleep .1
+		sleep 0.1
 	done
 	printf "\r[✓] %s complete!       \n" "$msg"
 }
@@ -544,7 +544,7 @@ sync_progress() {
 			printf "\r[%s] %s... (Finishing up)                       " "$frame" "$msg"
 		fi
 
-		sleep .1
+		sleep 0.1
 		ticks=$((ticks + 1))
 	done
 	printf "\r[✓] %s complete!                                     \n" "$msg"
@@ -626,7 +626,7 @@ download_or_use_local() {
 	# Download file
 	printf 'Downloading %s...\n' "$filename"
 	tmp_dl=$(mktemp "/tmp/wii_dl.XXXXXX")
-	if ! wget -O "$tmp_dl" --show-progress --progress=bar:force "$url"; then
+	if ! wget --timeout=30 --tries=3 -O "$tmp_dl" --show-progress --progress=bar:force "$url"; then
 		rm -f "$tmp_dl"
 		printf '\033[1;31mFATAL ERROR: Failed to download %s\033[0m\n' "$filename"
 		exit 1
