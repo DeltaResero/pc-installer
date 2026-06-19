@@ -838,11 +838,10 @@ do_configure() {
 			# Update /etc/hosts
 			# Remove old hostname entries and add new one
 			if [ -f "$rootfs_mnt/etc/hosts" ]; then
-				# Backup original
-				cp "$rootfs_mnt/etc/hosts" "$rootfs_mnt/etc/hosts.bak"
-
+				_hosts_tmp=$(mktemp)
 				# Remove lines with 127.0.1.1 (local hostname)
-				grep -v "^127\.0\.1\.1[[:blank:]]" "$rootfs_mnt/etc/hosts.bak" > "$rootfs_mnt/etc/hosts" || true
+				grep -v "^127\.0\.1\.1[[:blank:]]" "$rootfs_mnt/etc/hosts" > "$_hosts_tmp" || true
+				mv "$_hosts_tmp" "$rootfs_mnt/etc/hosts"
 			fi
 
 			# Add new hostname entry
