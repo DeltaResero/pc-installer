@@ -750,7 +750,8 @@ do_configure() {
 
 	if [ "$copy_nm" = "true" ]; then
 		if [ -d /etc/NetworkManager/system-connections ] &&
-		! [ -z "$(ls -A /etc/NetworkManager/system-connections)" ]; then
+		find /etc/NetworkManager/system-connections -maxdepth 1 -mindepth 1 \
+			-print -quit 2>/dev/null | grep -q .; then
 			mkdir -p "$rootfs_mnt/etc/NetworkManager/system-connections/"
 			chmod 700 "$rootfs_mnt/etc/NetworkManager/system-connections/"
 			cp -a /etc/NetworkManager/system-connections/. "$rootfs_mnt/etc/NetworkManager/system-connections/"
