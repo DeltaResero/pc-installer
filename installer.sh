@@ -23,14 +23,14 @@ _bg_pids=""
 
 bug_report() {
 	exec >&2
-	echo "Please attach everything below this line!"
+	printf 'Please attach everything below this line!\n'
 	printf "=== %s - BUG REPORT ===\n" "$product_plain"
-	echo "VERSION: $version"
+	printf 'VERSION: %s\n' "$version"
 	for arg in "$@"; do
 		printf '%s\n' "$arg"
 	done
-	echo "=== END OF BUG REPORT ==="
-	echo "Now exiting.  Please attach the following bug report and submit a GitHub issue."
+	printf '=== END OF BUG REPORT ===\n'
+	printf 'Now exiting.  Please attach the following bug report and submit a GitHub issue.\n'
 	exit 1
 }
 
@@ -148,7 +148,7 @@ formatSize() {
 		esac
 	done
 
-	echo "${size}${suffix}"
+	printf '%s%s\n' "$size" "$suffix"
 }
 
 select_disk() {
@@ -439,7 +439,7 @@ mount_in_tmpdir_or_die() {
 	}
 
 	# success
-	echo "$tmp"
+	printf '%s\n' "$tmp"
 }
 
 # Check if pv (pipe viewer) is available
@@ -452,7 +452,7 @@ get_file_size() {
 	if [ -f "$1" ]; then
 		stat -c%s "$1" 2>/dev/null || stat -f%z "$1" 2>/dev/null || echo "0"
 	else
-		echo "0"
+		printf '0\n'
 	fi
 }
 
@@ -576,13 +576,13 @@ toggle_udisks() {
 	if command -v systemctl >/dev/null 2>&1; then
 		if [ "$1" = "stop" ]; then
 			if systemctl is-active --quiet udisks2; then
-				echo "Suspending udisks2 monitoring..."
+				printf 'Suspending udisks2 monitoring...\n'
 				systemctl stop udisks2
 				UDISKS_WAS_RUNNING=true
 			fi
 		elif [ "$1" = "start" ]; then
 			if [ "$UDISKS_WAS_RUNNING" = "true" ]; then
-				echo "Resuming udisks2 monitoring..."
+				printf 'Resuming udisks2 monitoring...\n'
 				systemctl start udisks2 2>/dev/null || true
 				unset UDISKS_WAS_RUNNING
 			fi
@@ -590,13 +590,13 @@ toggle_udisks() {
 	elif command -v rc-service >/dev/null 2>&1; then
 		if [ "$1" = "stop" ]; then
 			if rc-service udevd status >/dev/null 2>&1; then
-				echo "Suspending udevd monitoring..."
+				printf 'Suspending udevd monitoring...\n'
 				rc-service udevd stop 2>/dev/null || true
 				UDISKS_WAS_RUNNING=true
 			fi
 		elif [ "$1" = "start" ]; then
 			if [ "$UDISKS_WAS_RUNNING" = "true" ]; then
-				echo "Resuming udevd monitoring..."
+				printf 'Resuming udevd monitoring...\n'
 				rc-service udevd start 2>/dev/null || true
 				unset UDISKS_WAS_RUNNING
 			fi
@@ -659,7 +659,7 @@ install_boot() {
 	download_or_use_local "$base_url/$tarball_name" "$tarball_name"
 
 	boot_mnt="$(mount_in_tmpdir_or_die "$boot_blkdev")"
-	echo "Now installing the boot files..."
+	printf 'Now installing the boot files...\n'
 
 	if has_pv; then
 		file_size=$(get_file_size "$tarball_name")
@@ -698,7 +698,7 @@ install_root() {
 	download_or_use_local "$base_url/$tarball_name" "$tarball_name"
 
 	rootfs_mnt="$(mount_in_tmpdir_or_die "$rootfs_blkdev")"
-	echo "Now installing the rootfs... (this may take a while depending on storage speed)"
+	printf 'Now installing the rootfs... (this may take a while depending on storage speed)\n'
 
 	if has_pv; then
 		file_size=$(get_file_size "$tarball_name")
@@ -713,7 +713,7 @@ install_root() {
 			bug_report "Step: install_root_extract" "pv exit: $pv_ret" "tar exit: $tar_ret"
 		fi
 	else
-		echo "Extracting... (this might take a while)"
+		printf 'Extracting... (this might take a while)\n'
 		(tar -xz --acls --xattrs --same-owner --same-permissions --numeric-owner --sparse -f "$tarball_name" -C "$rootfs_mnt/") &
 		tar_pid=$!
 		_bg_pids="${_bg_pids:+$_bg_pids }$tar_pid"
@@ -725,7 +725,7 @@ install_root() {
 		}
 	fi
 
-	echo "Syncing to disk..."
+	printf 'Syncing to disk...\n'
 	sync_progress "Syncing" "$rootfs_blkdev" "$rootfs_mnt"
 	printf "\033[32mRootfs installed!\033[0m\n"
 }
@@ -933,7 +933,7 @@ manual_install() {
 
 	case "$final_confirm" in
 		yes|YES)
-			echo "Proceeding with installation..."
+			printf 'Proceeding with installation...\n'
 			;;
 		*)
 			printf "\033[1;33mInstallation cancelled.\033[0m\n"
@@ -945,7 +945,7 @@ manual_install() {
 	toggle_udisks stop
 
 	# Unmount selected partitions if the host OS has auto-mounted them
-	echo "Unmounting selected partitions..."
+	printf 'Unmounting selected partitions...\n'
 	for _dev in "$boot_blkdev" "$rootfs_blkdev"; do
 		if grep -q "^$_dev " /proc/mounts; then
 			umount "$_dev" || {
@@ -955,7 +955,7 @@ manual_install() {
 		fi
 	done
 
-	echo "Formatting..."
+	printf 'Formatting...\n'
 
 	# Create a temp log file to capture mkfs output
 	fmt_log=$(mktemp)
@@ -982,7 +982,7 @@ manual_install() {
 
 	if [ "$ret" -ne 0 ]; then
 		printf "\033[1;31mFailed to format partitions!\033[0m\n"
-		echo "--- Error Log ---"
+		printf '--- Error Log ---\n'
 		cat "$fmt_log"
 		rm -f "$fmt_log"
 		bug_report "Step: rootfs_format" "Return code: $ret" "Root blkdev: $rootfs_blkdev"
@@ -1081,15 +1081,15 @@ automatic_install() {
 		exit 0
 	fi
 
-	echo "Proceeding with installation..."
+	printf 'Proceeding with installation...\n'
 
 	# Stop DE monitoring to prevent crashes
 	toggle_udisks stop
 
-	echo "Cleaning disk..."
+	printf 'Cleaning disk...\n'
 	clean_disk "$sd_blkdev"
 
-	echo "Repartitioning..."
+	printf 'Repartitioning...\n'
 
 	# Calculate partition sizes in sectors
 	fat_sectors=$((fat_mb * 2048))
@@ -1112,7 +1112,7 @@ type=83
 EOF
 	fi
 
-	echo "Synchronizing partition table with kernel..."
+	printf 'Synchronizing partition table with kernel...\n'
 	partprobe "/dev/$sd_blkdev" 2>/dev/null || true
 	settle_udev
 
@@ -1128,7 +1128,7 @@ EOF
 
 	# Wait for partition device nodes to appear; slow SD cards and USB
 	# adapters can take a moment after partprobe and device settle.
-	echo "Waiting for partitions to initialize..."
+	printf 'Waiting for partitions to initialize...\n'
 	_wait=0
 	while [ "$_wait" -lt 10 ]; do
 		[ -b "$boot_blkdev" ] && [ -b "$rootfs_blkdev" ] && break
@@ -1140,7 +1140,7 @@ EOF
 		exit 1
 	fi
 
-	echo "Formatting..."
+	printf 'Formatting...\n'
 
 	fmt_log=$(mktemp)
 
@@ -1159,7 +1159,7 @@ EOF
 
 	if [ "$ret" -ne 0 ]; then
 		printf "\033[1;31mFailed to format partitions!\033[0m\n"
-		echo "--- Error Log ---"
+		printf '--- Error Log ---\n'
 		cat "$fmt_log"
 		rm -f "$fmt_log"
 		bug_report "Step: loopdev_format" "Return code: $ret" "Boot blkdev: $boot_blkdev" "Root blkdev: $rootfs_blkdev"
@@ -1199,7 +1199,7 @@ fi
 
 check_dependencies
 
-echo "We need to gather some info about where you would like to install to..."
+printf 'We need to gather some info about where you would like to install to...\n'
 rescan_bdevs
 
 printf "\033[33mWe now need to know where your \033[32mSD Card\033[33m is.\033[0m\n"
