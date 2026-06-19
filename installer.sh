@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: GPL-2.0-or-later
 set -e
 product=$(printf '\033[33mWii Linux \033[1;36mArchPOWER\033[0m PC Installer')
 product_plain="Wii Linux ArchPOWER PC Installer"
