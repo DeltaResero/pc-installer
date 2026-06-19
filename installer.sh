@@ -853,7 +853,7 @@ do_configure() {
 		fi
 	fi
 
-	# TODO: More here.... set up user account?
+	# Future work: interactive user account setup (password, sudo, etc.)
 }
 
 unmount_and_cleanup() {
