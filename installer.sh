@@ -215,7 +215,7 @@ select_part() {
 		size=$((size / 2))
 		size="$(formatSize "$size")"
 
-		echo "[$i] /dev/$part - $size"
+		printf '[%s] /dev/%s - %s\n' "$i" "$part" "$size"
 		i=$((i + 1))
 	done
 	i=1
@@ -833,7 +833,7 @@ do_configure() {
 
 		if [ "$hostname_changed" = "true" ]; then
 			# Set hostname in /etc/hostname
-			echo "$hostname" > "$rootfs_mnt/etc/hostname"
+			printf '%s\n' "$hostname" > "$rootfs_mnt/etc/hostname"
 
 			# Update /etc/hosts
 			# Remove old hostname entries and add new one
