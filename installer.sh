@@ -39,10 +39,10 @@ cleanup() {
 	# Kill tracked background processes explicitly. kill $(jobs -p) is unreliable
 	# in POSIX sh because command substitutions run in a subshell with an empty
 	# job table (notably dash, which is /bin/sh on Debian/Ubuntu).
-	if [ -n "$_bg_pids" ]; then
-		# shellcheck disable=SC2086 -- word splitting is intentional
-		kill $_bg_pids 2>/dev/null || true
-	fi
+	# Iterating with 'for' splits $_bg_pids on whitespace as intended.
+	for _p in $_bg_pids; do
+		kill "$_p" 2>/dev/null || true
+	done
 	wait 2>/dev/null || true
 
 	# Only attempt cleanup if variables are set
