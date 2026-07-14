@@ -20,6 +20,7 @@ selection=""
 selection_info=""
 fmt_log=""
 _bg_pids=""
+_dl_tmp=""
 
 bug_report() {
 	exec >&2
@@ -62,6 +63,11 @@ cleanup() {
 	# Clean up format log if the trap fires mid-format
 	if [ -n "$fmt_log" ] && [ -f "$fmt_log" ]; then
 		rm -f "$fmt_log" 2>/dev/null || true
+	fi
+
+	# Clean up the download temp file if the trap fires mid-download
+	if [ -n "$_dl_tmp" ] && [ -f "$_dl_tmp" ]; then
+		rm -f "$_dl_tmp" 2>/dev/null || true
 	fi
 
 	# Ensure monitoring is restarted if we crashed while it was stopped
@@ -643,12 +649,15 @@ download_or_use_local() {
 	printf 'Current working directory: %s\n' "$PWD"
 	printf 'Downloading %s...\n' "$filename"
 	tmp_dl=$(mktemp "/tmp/wii_dl.XXXXXX")
+	_dl_tmp="$tmp_dl"
 	if ! wget --timeout=30 --tries=3 -O "$tmp_dl" --show-progress --progress=bar:force "$url"; then
 		rm -f "$tmp_dl"
+		_dl_tmp=""
 		printf '\033[1;31mFATAL ERROR: Failed to download %s\033[0m\n' "$filename"
 		exit 1
 	fi
 	mv -f "$tmp_dl" "./$filename"
+	_dl_tmp=""
 
 	if [ ! -s "./$filename" ]; then
 		printf '\033[1;31mFATAL ERROR: Downloaded file is empty or missing: %s\033[0m\n' "$filename"
@@ -916,7 +925,7 @@ manual_install() {
 	rootfs_blkdev="/dev/$selection"
 
 	if [ "$boot_blkdev" = "$rootfs_blkdev" ]; then
-		printf "\033[1;31mError: Boot and root partitions must be different devices!\033[0m\n"
+		printf "\033[1;31mError: Boot and root must be different partitions!\033[0m\n"
 		exit 1
 	fi
 
