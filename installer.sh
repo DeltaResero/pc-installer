@@ -1013,7 +1013,7 @@ manual_install() {
 
 	if [ "$ret" -ne 0 ]; then
 		printf "\033[1;31mFailed to format partitions!\033[0m\n"
-		printf '--- Error Log ---\n'
+		printf '%s\n' '--- Error Log ---'
 		cat "$fmt_log"
 		rm -f "$fmt_log"
 		bug_report "Step: rootfs_format" "Return code: $ret" "Root blkdev: $rootfs_blkdev"
@@ -1190,7 +1190,7 @@ EOF
 
 	if [ "$ret" -ne 0 ]; then
 		printf "\033[1;31mFailed to format partitions!\033[0m\n"
-		printf '--- Error Log ---\n'
+		printf '%s\n' '--- Error Log ---'
 		cat "$fmt_log"
 		rm -f "$fmt_log"
 		bug_report "Step: loopdev_format" "Return code: $ret" "Boot blkdev: $boot_blkdev" "Root blkdev: $rootfs_blkdev"
