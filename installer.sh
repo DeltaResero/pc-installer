@@ -338,10 +338,13 @@ validate_part_selection() {
 		fi
 	fi
 
-	# Check filesystem type and warn if formatting will be required
+	# Warn before erasing. The root partition is always reformatted, so it must
+	# always warn even when it is already ext4 (the case most likely to hold
+	# real data). The boot partition is only reformatted when its type does not
+	# already match, so it only warns on a mismatch.
 	fstype=$(blkid -s TYPE -o value "/dev/$selection" 2>/dev/null || true)
-	if [ "$fstype" != "$correct_type" ]; then
-		printf '\033[1;33mThis partition will need to be formatted as %s (%s).\n' "$name2" "$correct_type"
+	if [ "$1" = "root" ] || [ "$fstype" != "$correct_type" ]; then
+		printf '\033[1;33mThis partition will be formatted as %s (%s).\n' "$name2" "$correct_type"
 		printf "All existing data on it will be \033[31mERASED\033[33m during installation.\n"
 		printf "Do you want to continue?\033[0m [y/N] "
 
