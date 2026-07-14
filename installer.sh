@@ -984,7 +984,7 @@ manual_install() {
 			mkfs.vfat -F 32 "$boot_blkdev"
 		fi
 		wipefs -a "$rootfs_blkdev"
-		mkfs.ext4 -O '^encrypt' -O '^verity' -O '^metadata_csum_seed' -L 'arch' "$rootfs_blkdev"
+		mkfs.ext4 -O '^encrypt,^verity,^metadata_csum_seed' -L 'arch' "$rootfs_blkdev"
 	} > "$fmt_log" 2>&1 &
 	fmt_pid=$!
 	_bg_pids="${_bg_pids:+$_bg_pids }$fmt_pid"
@@ -1163,7 +1163,7 @@ EOF
 	{
 		set -e
 		mkfs.vfat -F 32 "$boot_blkdev"
-		mkfs.ext4 -O '^encrypt' -O '^verity' -O '^metadata_csum_seed' -L 'arch' "$rootfs_blkdev"
+		mkfs.ext4 -O '^encrypt,^verity,^metadata_csum_seed' -L 'arch' "$rootfs_blkdev"
 	} > "$fmt_log" 2>&1 &
 	fmt_pid=$!
 	_bg_pids="${_bg_pids:+$_bg_pids }$fmt_pid"
