@@ -667,9 +667,12 @@ install_boot() {
 		# pipeline only surfaces tar's exit code, so a pv failure mid-stream
 		# would go undetected and silently produce a truncated installation.
 		_pv_rc=$(mktemp)
+		# Guard the pipeline with '|| tar_ret=$?': set -e is active, and the
+		# pipeline's status is tar's, so an unguarded tar failure would abort
+		# the script before the checks below could run bug_report.
+		tar_ret=0
 		{ pv -p -t -e -r -b -s "$file_size" "$tarball_name"; echo $? > "$_pv_rc"; } | \
-			tar xzf - --no-same-owner --no-same-permissions -C "$boot_mnt/"
-		tar_ret=$?
+			tar xzf - --no-same-owner --no-same-permissions -C "$boot_mnt/" || tar_ret=$?
 		pv_ret=$(cat "$_pv_rc" 2>/dev/null || echo 1)
 		rm -f "$_pv_rc"
 		if [ "$tar_ret" -ne 0 ] || [ "$pv_ret" -ne 0 ]; then
@@ -703,9 +706,12 @@ install_root() {
 	if has_pv; then
 		file_size=$(get_file_size "$tarball_name")
 		_pv_rc=$(mktemp)
+		# Guard the pipeline with '|| tar_ret=$?': set -e is active, and the
+		# pipeline's status is tar's, so an unguarded tar failure would abort
+		# the script before the checks below could run bug_report.
+		tar_ret=0
 		{ pv -p -t -e -r -b -s "$file_size" "$tarball_name"; echo $? > "$_pv_rc"; } | \
-			tar -xzf - --acls --xattrs --same-owner --same-permissions --numeric-owner --sparse -C "$rootfs_mnt/"
-		tar_ret=$?
+			tar -xzf - --acls --xattrs --same-owner --same-permissions --numeric-owner --sparse -C "$rootfs_mnt/" || tar_ret=$?
 		pv_ret=$(cat "$_pv_rc" 2>/dev/null || echo 1)
 		rm -f "$_pv_rc"
 		if [ "$tar_ret" -ne 0 ] || [ "$pv_ret" -ne 0 ]; then
