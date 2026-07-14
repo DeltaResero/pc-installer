@@ -327,7 +327,7 @@ validate_part_selection() {
 		name2="boot"
 		correct_type="vfat"
 	else
-		printf "\033[1;31mInternal error - parameter 1 not boot or root"
+		printf "\033[1;31mInternal error - parameter 1 not boot or root\033[0m\n"
 		bug_report "Step: validate_part" "Param1: $1"
 	fi
 
@@ -481,7 +481,7 @@ spinner() {
 
 	# Check if PID is valid (process might have finished already)
 	if ! kill -0 "$pid" 2>/dev/null; then
-		printf "\r[✓] %s complete!       \n" "$msg"
+		printf "\r[*] %s finished.       \n" "$msg"
 		return 0
 	fi
 
@@ -497,7 +497,10 @@ spinner() {
 		printf "\r[%s] %s..." "$frame" "$msg"
 		sleep 0.1
 	done
-	printf "\r[✓] %s complete!       \n" "$msg"
+	# Note: this only means the process exited, not that it succeeded.
+	# Callers are responsible for checking the actual exit code afterward
+	# and reporting success/failure themselves.
+	printf "\r[*] %s finished.       \n" "$msg"
 }
 
 sync_progress() {
@@ -887,7 +890,7 @@ do_configure() {
 }
 
 unmount_and_cleanup() {
-	printf "\033[32mSuccess!  Now syncing to disk and cleaning up, please wait...\n"
+	printf "\033[32mSuccess!  Now syncing to disk and cleaning up, please wait...\033[0m\n"
 	sync_progress "Final sync" "$rootfs_blkdev"
 
 	umount "$boot_mnt" || {
