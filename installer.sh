@@ -207,7 +207,10 @@ select_part() {
 	if [ -z "$all_parts" ]; then
 		printf '\033[1;31mNo partitions found on /dev/%s.\033[0m\n' "$1"
 		printf "The disk must be partitioned before using manual mode.\n"
-		return 1
+		# Return 3 (not 1) so the caller can tell "nothing to select" apart
+		# from an invalid menu choice; retrying here would spin forever with
+		# no prompt, since this branch never reads input.
+		return 3
 	fi
 
 	i=1
@@ -360,6 +363,13 @@ validate_and_select_part() {
 			_rc="$?"
 			case "$_rc" in
 				1) printf "\033[1;31mInvalid option, please try again\033[0m\n"; continue ;;
+				3)
+					# No partitions on the disk; retrying can't help (the disk
+					# needs partitioning first), and looping would spin without
+					# a prompt. Abort rather than hang.
+					printf "\033[1;31mCannot continue: the selected disk has no partitions to choose from.\033[0m\n"
+					printf "Partition the disk first, or restart and use automatic mode.\n"
+					exit 1 ;;
 				*)
 					printf "\033[1;31mInternal error.  Please report the following info.\033[0m\n"
 					bug_report "Step: select_part" "Return code: $_rc" ;;
